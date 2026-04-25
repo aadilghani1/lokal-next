@@ -5,15 +5,13 @@ import type { SSEEvent } from "@/hooks/use-event-stream";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Shimmer } from "@/components/ai-elements/shimmer";
+import { ToolUI } from "./tool-registry";
 import {
   CheckCircleIcon,
   BrainIcon,
   PenLineIcon,
-  SearchIcon,
   AlertCircleIcon,
   FileTextIcon,
-  GlobeIcon,
-  WrenchIcon,
 } from "lucide-react";
 
 function StageEvent({ stage, detail }: { stage: string; detail: string | null }) {
@@ -42,28 +40,7 @@ function StageEvent({ stage, detail }: { stage: string; detail: string | null })
 }
 
 function ToolCallEvent({ name, input, output_preview }: { name: string; input: Record<string, unknown>; output_preview: string }) {
-  const inputStr = Object.entries(input)
-    .map(([k, v]) => `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`)
-    .join(", ")
-    .slice(0, 100);
-
-  return (
-    <div className="group mb-2 w-full rounded-md border bg-card">
-      <div className="flex items-center gap-2 px-3 py-2">
-        <WrenchIcon className="size-3.5 text-muted-foreground" />
-        <Badge variant="secondary" className="font-mono text-[11px]">{name}</Badge>
-        <span className="text-xs text-muted-foreground truncate flex-1">{inputStr}</span>
-        {output_preview && (
-          <Badge variant="outline" className="text-[10px] text-green-600 border-green-200">done</Badge>
-        )}
-      </div>
-      {output_preview && (
-        <div className="px-3 pb-2 border-t border-border/50">
-          <p className="text-[11px] text-muted-foreground mt-1.5 line-clamp-2 font-mono">{output_preview}</p>
-        </div>
-      )}
-    </div>
-  );
+  return <ToolUI name={name} input={input} output_preview={output_preview} />;
 }
 
 function ThinkingEvent({ text }: { text: string }) {
