@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, SpinnerGap, WarningCircle } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, SpinnerGap, WarningCircle, CheckCircle } from "@phosphor-icons/react/dist/ssr";
 
 interface RankBetterCtaProps {
   profileId: string;
@@ -48,79 +48,51 @@ export function RankBetterCta({ profileId }: RankBetterCtaProps) {
 
   if (state.status === "success") {
     return (
-      <div className="flex items-center justify-between px-7 py-6 bg-foreground rounded-2xl">
-        <div className="flex flex-col gap-1">
-          <span className="text-lg font-bold text-background">
-            Article generated
-          </span>
-          <span className="text-sm text-muted-foreground">
-            Job ID: {state.data.jobId.slice(0, 8)}...
-          </span>
-        </div>
+      <div className="flex items-center gap-3">
         <a href={state.data.article.url}>
           <Button variant="default" size="lg" className="gap-2">
+            <CheckCircle className="size-4" weight="bold" />
             View Article
             <ArrowRight className="size-4" weight="bold" />
           </Button>
         </a>
+        <span className="text-xs text-muted-foreground">
+          Generated &middot; {state.data.jobId.slice(0, 8)}
+        </span>
       </div>
     );
   }
 
   if (state.status === "error") {
     return (
-      <div className="flex items-center justify-between px-7 py-6 bg-destructive/10 rounded-2xl">
-        <div className="flex items-center gap-3">
-          <WarningCircle className="size-5 text-destructive shrink-0" weight="duotone" />
-          <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-semibold text-destructive">
-              Generation failed
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {state.message}
-            </span>
-          </div>
-        </div>
-        <Button
-          onClick={handleClick}
-          variant="outline"
-          size="sm"
-        >
+      <div className="flex items-center gap-3">
+        <Button onClick={handleClick} variant="outline" size="lg" className="gap-2">
+          <WarningCircle className="size-4 text-destructive" weight="bold" />
           Retry
         </Button>
+        <span className="text-xs text-destructive">{state.message}</span>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center justify-between px-7 py-6 bg-foreground rounded-2xl">
-      <div className="flex flex-col gap-1">
-        <span className="text-lg font-bold text-background">
-          Outrank your competitors
-        </span>
-        <span className="text-sm text-background/50">
-          Generate SEO-optimized blog articles to boost your local search
-          visibility.
-        </span>
-      </div>
-      <Button
-        onClick={handleClick}
-        disabled={state.status === "loading"}
-        size="lg"
-        className="gap-2"
-      >
-        {state.status === "loading" ? (
-          <>
-            <SpinnerGap className="size-4 animate-spin" weight="bold" />
-            Generating...
-          </>
-        ) : (
-          <>
-            Rank Better
-            <ArrowRight className="size-4" weight="bold" />
-          </>
-        )}
-      </Button>
-    </div>
+    <Button
+      onClick={handleClick}
+      disabled={state.status === "loading"}
+      size="lg"
+      className="gap-2"
+    >
+      {state.status === "loading" ? (
+        <>
+          <SpinnerGap className="size-4 animate-spin" weight="bold" />
+          Generating...
+        </>
+      ) : (
+        <>
+          Rank Better
+          <ArrowRight className="size-4" weight="bold" />
+        </>
+      )}
+    </Button>
   );
 }

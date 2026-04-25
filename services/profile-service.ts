@@ -1,6 +1,6 @@
 "use server";
 
-import { getRequiredOrgId } from "@/lib/auth";
+import { getRequiredUserId } from "@/lib/auth";
 import {
   profileSubmissionSchema,
   type ProfileSubmissionInput,
@@ -10,13 +10,13 @@ import {
 export async function submitProfile(
   input: ProfileSubmissionInput
 ): Promise<GoogleBusinessProfile> {
-  const orgId = await getRequiredOrgId();
+  const userId = await getRequiredUserId();
   const validated = profileSubmissionSchema.parse(input);
 
   // TODO: persist to database
   const profile: GoogleBusinessProfile = {
     id: crypto.randomUUID(),
-    orgId,
+    userId,
     url: validated.url,
     name: null,
     placeId: null,
@@ -29,9 +29,9 @@ export async function submitProfile(
 }
 
 export async function getProfiles(): Promise<GoogleBusinessProfile[]> {
-  const orgId = await getRequiredOrgId();
+  const userId = await getRequiredUserId();
 
-  // TODO: query database filtered by orgId
-  void orgId;
+  // TODO: query database filtered by userId
+  void userId;
   return [];
 }

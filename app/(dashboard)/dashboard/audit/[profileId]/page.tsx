@@ -23,7 +23,7 @@ export default async function AuditPage({
           { label: "Audit" },
         ]}
       />
-      <div className="flex flex-1 flex-col gap-7 p-8">
+      <div className="relative flex flex-1 flex-col gap-7 overflow-auto p-8 pb-28">
         <div className="flex items-center gap-10 rounded-2xl bg-card p-8 shadow-[var(--shadow-surface)]">
           <ScoreRing score={audit.overallScore} />
           <div className="flex flex-col gap-2">
@@ -66,7 +66,9 @@ export default async function AuditPage({
           </div>
           <CompetitorTable competitors={audit.competitors} userRank={3} />
         </div>
+      </div>
 
+      <div className="sticky bottom-0 z-10 border-t flex justify-center items-center bg-gradient-to-b from-background/0 to-background/50 backdrop-blur-sm px-8 py-4">
         <RankBetterCta profileId={profileId} />
       </div>
     </>

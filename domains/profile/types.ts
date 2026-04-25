@@ -1,6 +1,6 @@
 export interface GoogleBusinessProfile {
   id: string;
-  orgId: string;
+  userId: string;
   url: string;
   name: string | null;
   placeId: string | null;

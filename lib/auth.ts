@@ -2,12 +2,12 @@ import { auth } from "@clerk/nextjs/server";
 
 type AuthSession = Awaited<ReturnType<typeof auth>>;
 
-export async function getRequiredOrgId(): Promise<string> {
-  const { orgId } = await auth();
-  if (!orgId) {
-    throw new Error("No active organization. Please select an organization.");
+export async function getRequiredUserId(): Promise<string> {
+  const { userId } = await auth();
+  if (!userId) {
+    throw new Error("Unauthorized. Please sign in.");
   }
-  return orgId;
+  return userId;
 }
 
 export async function getRequiredAuth(): Promise<AuthSession> {

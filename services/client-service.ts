@@ -4,22 +4,22 @@ import { getRequiredAuth } from "@/lib/auth";
 import type { Client } from "@/domains/client";
 
 export async function getCurrentClient(): Promise<Client | null> {
-  const { orgId } = await getRequiredAuth();
-  if (!orgId) return null;
+  const { userId } = await getRequiredAuth();
+  if (!userId) return null;
 
-  // TODO: query database for client by orgId
-  void orgId;
+  // TODO: query database for client by userId
+  void userId;
   return null;
 }
 
 export async function provisionClient(
-  orgId: string,
+  userId: string,
   name: string
 ): Promise<Client> {
-  // TODO: create client record in database linked to Clerk org
+  // TODO: create client record in database
   const client: Client = {
     id: crypto.randomUUID(),
-    orgId,
+    userId,
     name,
     slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
     createdAt: new Date(),

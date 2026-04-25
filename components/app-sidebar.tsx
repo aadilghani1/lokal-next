@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { SquaresFour, Storefront, GearSix, MagnifyingGlass, FileText } from "@phosphor-icons/react/dist/ssr";
 import { LogoMark } from "@/components/logo";
-import { OrgSwitcher } from "@/components/org-switcher";
 import { NavUser } from "@/components/nav-user";
 import { SearchForm } from "@/components/search-form";
 import {
@@ -69,7 +68,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             Lokal
           </span>
         </Link>
-        <OrgSwitcher />
         <SearchForm />
       </SidebarHeader>
       <SidebarContent>
