@@ -88,7 +88,7 @@ export default function GeneratingPage() {
           </div>
         </div>
 
-        <EventFeed events={events} />
+        <EventFeed events={events} isStreaming={status === "connected" || status === "connecting"} />
       </div>
     </>
   );
