@@ -82,7 +82,16 @@ export default async function AuditPage({
       </div>
 
       <div className="sticky bottom-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-lg px-8 py-4">
-        <RankBetterCta gbpUrl={url ?? ""} tenantSlug={tenantSlug} />
+        <RankBetterCta
+          gbpUrl={url ?? ""}
+          tenantSlug={tenantSlug}
+          competitorUrls={audit.competitors
+            .filter((c) => c.url && c.url !== "#")
+            .map((c) => c.url)}
+          businessName={audit.business?.name}
+          businessCategory={audit.business?.category}
+          businessLocation={audit.business?.location}
+        />
       </div>
     </>
   );

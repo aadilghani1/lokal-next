@@ -1,6 +1,5 @@
 "use client";
 
-import { UserButton } from "@clerk/nextjs";
 import {
   SidebarMenu,
   SidebarMenuItem,
@@ -10,14 +9,10 @@ export function NavUser() {
   return (
     <SidebarMenu>
       <SidebarMenuItem className="flex items-center gap-2 px-2 py-1.5">
-        <UserButton
-          showName
-          appearance={{
-            elements: {
-              avatarBox: "size-8",
-            },
-          }}
-        />
+        <div className="size-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
+          U
+        </div>
+        <span className="text-sm">Demo User</span>
       </SidebarMenuItem>
     </SidebarMenu>
   );

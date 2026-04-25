@@ -19,7 +19,7 @@ function buildCategories(business: BusinessInfo | null): AuditCategory[] {
     ? Math.round((business.rating! / 5) * 100)
     : 50;
 
-  return [
+  const categories: AuditCategory[] = [
     {
       name: "Reviews",
       score: Math.round((ratingScore + reviewScore) / 2),
@@ -29,32 +29,38 @@ function buildCategories(business: BusinessInfo | null): AuditCategory[] {
         : ["Keep responding to reviews promptly"],
     },
     {
-      name: "Photos",
-      score: 55 + Math.floor(Math.random() * 20),
+      name: "Rating",
+      score: ratingScore,
       maxScore: 100,
-      suggestions: ["Add high-quality interior and product photos weekly"],
-    },
-    {
-      name: "Posts",
-      score: 35 + Math.floor(Math.random() * 25),
-      maxScore: 100,
-      suggestions: ["Post weekly about specials, events, or updates"],
+      suggestions: hasRating && business.rating! < 4.5
+        ? ["Focus on service quality to improve rating", "Address negative review feedback"]
+        : ["Maintain your high rating with consistent service"],
     },
     {
       name: "Completeness",
-      score: business.description.length > 50 ? 85 : 65,
+      score: business.description.length > 50 ? 85 : business.description.length > 0 ? 55 : 30,
       maxScore: 100,
       suggestions: business.description.length > 50
         ? ["Add holiday hours and service areas"]
         : ["Fill out your full business description", "Add service areas and attributes"],
     },
     {
-      name: "Keywords",
-      score: business.category ? 60 : 40,
+      name: "Category",
+      score: business.category ? 80 : 20,
       maxScore: 100,
-      suggestions: ["Add service keywords to your business description", "Use location-specific terms"],
+      suggestions: business.category
+        ? ["Consider adding secondary categories"]
+        : ["Set your primary business category on Google"],
+    },
+    {
+      name: "Website",
+      score: business.rawContent.includes("website") ? 80 : 20,
+      maxScore: 100,
+      suggestions: ["Add your website URL to your Google Business Profile", "A website helps you rank in local search"],
     },
   ];
+
+  return categories;
 }
 
 function buildCompetitors(
@@ -62,14 +68,14 @@ function buildCompetitors(
   hits: CompetitorHit[]
 ): { competitors: Competitor[]; userRank: number } {
   if (!business || hits.length === 0) {
-    return { competitors: DEFAULT_COMPETITORS, userRank: 3 };
+    return { competitors: [], userRank: 0 };
   }
 
   const all: { name: string; url: string; rating: number; reviewCount: number; score: number; isSelf: boolean }[] = [];
 
   for (const hit of hits) {
-    const rating = hit.rating ?? (3.5 + Math.random() * 1.3);
-    const reviews = hit.reviewCount ?? Math.floor(50 + Math.random() * 200);
+    const rating = hit.rating ?? 0;
+    const reviews = hit.reviewCount ?? 0;
     all.push({
       name: hit.name,
       url: hit.url,
@@ -116,19 +122,11 @@ function buildCompetitors(
 }
 
 const DEFAULT_CATEGORIES: AuditCategory[] = [
-  { name: "Reviews", score: 72, maxScore: 100, suggestions: ["Respond to all reviews within 24 hours"] },
-  { name: "Photos", score: 60, maxScore: 100, suggestions: ["Add high-quality interior and product photos"] },
-  { name: "Posts", score: 45, maxScore: 100, suggestions: ["Post weekly about specials or events"] },
-  { name: "Completeness", score: 80, maxScore: 100, suggestions: ["Add holiday hours"] },
-  { name: "Keywords", score: 55, maxScore: 100, suggestions: ["Add service keywords to your description"] },
-];
-
-const DEFAULT_COMPETITORS: Competitor[] = [
-  { rank: 1, name: "Top Local Business", url: "#", rating: 4.8, reviewCount: 512, overallScore: 91 },
-  { rank: 2, name: "Runner Up Business", url: "#", rating: 4.7, reviewCount: 389, overallScore: 87 },
-  { rank: 3, name: "Your Business", url: "#", rating: 4.6, reviewCount: 248, overallScore: 72 },
-  { rank: 4, name: "Nearby Competitor", url: "#", rating: 4.5, reviewCount: 198, overallScore: 65 },
-  { rank: 5, name: "Another Competitor", url: "#", rating: 4.3, reviewCount: 156, overallScore: 58 },
+  { name: "Reviews", score: 0, maxScore: 100, suggestions: ["Add your Google Business Profile to get started"] },
+  { name: "Rating", score: 0, maxScore: 100, suggestions: ["Encourage customers to leave reviews"] },
+  { name: "Completeness", score: 0, maxScore: 100, suggestions: ["Fill out your business description"] },
+  { name: "Category", score: 0, maxScore: 100, suggestions: ["Set your primary business category"] },
+  { name: "Website", score: 0, maxScore: 100, suggestions: ["Add a website to your profile"] },
 ];
 
 export async function getAudit(urlOrId: string): Promise<

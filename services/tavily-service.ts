@@ -79,24 +79,122 @@ function parseCategory(text: string): string {
   return "";
 }
 
-export async function extractBusinessInfo(
-  gbpUrl: string
-): Promise<BusinessInfo | null> {
-  const tvly = getTavily();
-  if (!tvly) return null;
+function parseNameFromMapsUrl(url: string): string | null {
+  const decoded = decodeURIComponent(url);
+  const m = decoded.match(/\/maps\/place\/([^/@]+)/);
+  if (!m) return null;
+  return m[1].replace(/\+/g, " ").replace(/_/g, " ").trim() || null;
+}
 
-  if (!gbpUrl || gbpUrl.length < 10) {
-    console.warn("[tavily] Invalid URL:", gbpUrl);
+const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY ?? "";
+
+interface PlacesResult {
+  name: string;
+  formatted_address?: string;
+  rating?: number;
+  user_ratings_total?: number;
+  types?: string[];
+  website?: string;
+  editorial_summary?: { overview?: string };
+}
+
+async function findPlaceFromMapsUrl(mapsUrl: string): Promise<PlacesResult | null> {
+  if (!GOOGLE_PLACES_API_KEY) {
+    console.warn("[places] GOOGLE_PLACES_API_KEY not set");
     return null;
   }
 
+  const name = parseNameFromMapsUrl(mapsUrl);
+  if (!name) return null;
+
+  const locationHint = parseLocationFromUrl(mapsUrl);
+  const query = locationHint ? `${name} ${locationHint}` : name;
+
   try {
-    console.log("[tavily] Extracting business info from:", gbpUrl.slice(0, 80));
+    const findUrl = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(query)}&inputtype=textquery&fields=place_id&key=${GOOGLE_PLACES_API_KEY}`;
+    const findRes = await fetch(findUrl);
+    const findData = await findRes.json() as { candidates?: { place_id?: string }[] };
+    const placeId = findData.candidates?.[0]?.place_id;
+    if (!placeId) return null;
+
+    const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_address,rating,user_ratings_total,types,website,editorial_summary&key=${GOOGLE_PLACES_API_KEY}`;
+    const detailsRes = await fetch(detailsUrl);
+    const detailsData = await detailsRes.json() as { result?: PlacesResult };
+    return detailsData.result ?? null;
+  } catch (err) {
+    console.error("[places] API failed:", err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+function typesToCategory(types: string[]): string {
+  const mapping: Record<string, string> = {
+    restaurant: "Restaurant", cafe: "Cafe", bakery: "Bakery", bar: "Bar",
+    hotel: "Hotel", gym: "Gym", hair_care: "Salon", beauty_salon: "Salon",
+    spa: "Spa", store: "Store", shopping_mall: "Store", dentist: "Dentist",
+    doctor: "Doctor", pharmacy: "Pharmacy", supermarket: "Supermarket",
+    meal_delivery: "Restaurant", meal_takeaway: "Restaurant",
+    lodging: "Hotel", night_club: "Bar", car_wash: "Car Wash",
+    laundry: "Laundry", real_estate_agency: "Real Estate",
+    insurance_agency: "Insurance", accounting: "Accounting",
+    lawyer: "Lawyer", plumber: "Plumber", electrician: "Electrician",
+    moving_company: "Moving Company", locksmith: "Locksmith",
+    painter: "Painter", roofing_contractor: "Roofing",
+    home_goods_store: "Home Goods",
+  };
+  for (const t of types) {
+    if (mapping[t]) return mapping[t];
+  }
+  return types[0]?.replace(/_/g, " ") ?? "";
+}
+
+export async function extractBusinessInfo(
+  gbpUrl: string
+): Promise<BusinessInfo | null> {
+  if (!gbpUrl || gbpUrl.length < 10) {
+    console.warn("[biz] Invalid URL:", gbpUrl);
+    return null;
+  }
+
+  const isGoogleMaps = gbpUrl.includes("google.com/maps") || gbpUrl.includes("maps.google") || gbpUrl.includes("share.google");
+
+  if (isGoogleMaps) {
+    console.log("[biz] Google Maps URL detected, using Places API");
+    const place = await findPlaceFromMapsUrl(gbpUrl);
+
+    if (place) {
+      const category = place.types ? typesToCategory(place.types) : "";
+      const location = place.formatted_address ?? "";
+      const description = place.editorial_summary?.overview ?? `${place.name} located at ${location}`;
+
+      console.log("[biz] Places API: %s | %s | %s | %.1f ★ | %d reviews",
+        place.name, location, category, place.rating ?? 0, place.user_ratings_total ?? 0);
+
+      return {
+        name: place.name,
+        description,
+        location,
+        category,
+        rating: place.rating ?? null,
+        reviewCount: place.user_ratings_total ?? null,
+        rawContent: JSON.stringify(place),
+      };
+    }
+
+    console.warn("[biz] Places API failed, falling back to name parse + Tavily search");
+  }
+
+  // Non-Maps URL or Places API fallback: extract with Tavily
+  const tvly = getTavily();
+  if (!tvly) return null;
+
+  try {
+    console.log("[biz] Extracting with Tavily from:", gbpUrl.slice(0, 80));
     const result = await tvly.extract([gbpUrl]);
     const content = result.results?.[0]?.rawContent ?? "";
 
     if (!content) {
-      console.warn("[tavily] No content extracted from URL");
+      console.warn("[biz] No content extracted from URL");
       return null;
     }
 
@@ -109,7 +207,7 @@ export async function extractBusinessInfo(
     const rating = parseRating(content);
     const reviewCount = parseReviewCount(content);
 
-    console.log("[tavily] Extracted: %s | %s | %s | %.1f ★ | %d reviews",
+    console.log("[biz] Extracted: %s | %s | %s | %.1f ★ | %d reviews",
       name, location || "?", category || "?", rating ?? 0, reviewCount ?? 0);
 
     return {
@@ -122,7 +220,7 @@ export async function extractBusinessInfo(
       rawContent: content.slice(0, 3000),
     };
   } catch (err) {
-    console.error("[tavily] Extract failed:", err instanceof Error ? err.message : err);
+    console.error("[biz] Extract failed:", err instanceof Error ? err.message : err);
     return null;
   }
 }

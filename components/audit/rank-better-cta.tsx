@@ -8,10 +8,10 @@ import { ArrowRight, SpinnerGap, WarningCircle } from "@phosphor-icons/react/dis
 interface RankBetterCtaProps {
   gbpUrl: string;
   tenantSlug: string;
-}
-
-interface GenerationResult {
-  article: { id: string };
+  competitorUrls?: string[];
+  businessName?: string;
+  businessCategory?: string;
+  businessLocation?: string;
 }
 
 type CtaState =
@@ -19,7 +19,7 @@ type CtaState =
   | { status: "loading" }
   | { status: "error"; message: string };
 
-export function RankBetterCta({ gbpUrl, tenantSlug }: RankBetterCtaProps) {
+export function RankBetterCta({ gbpUrl, tenantSlug, competitorUrls, businessName, businessCategory, businessLocation }: RankBetterCtaProps) {
   const [state, setState] = useState<CtaState>({ status: "idle" });
   const router = useRouter();
 
@@ -29,7 +29,7 @@ export function RankBetterCta({ gbpUrl, tenantSlug }: RankBetterCtaProps) {
       const res = await fetch("/api/rank-better", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gbpUrl, tenantSlug }),
+        body: JSON.stringify({ gbpUrl, tenantSlug, competitorUrls, businessName, businessCategory, businessLocation }),
       });
 
       if (!res.ok) {
@@ -37,8 +37,10 @@ export function RankBetterCta({ gbpUrl, tenantSlug }: RankBetterCtaProps) {
         throw new Error(body?.error ?? `Request failed (${res.status})`);
       }
 
-      const data: GenerationResult = await res.json();
-      router.push(`/dashboard/articles/${data.article.id}`);
+      const data = await res.json();
+      router.push(
+        `/dashboard/generating?jobId=${data.jobId}&tenantSlug=${tenantSlug}&businessName=${encodeURIComponent(data.businessName ?? "")}`
+      );
     } catch (err) {
       setState({
         status: "error",
@@ -69,7 +71,7 @@ export function RankBetterCta({ gbpUrl, tenantSlug }: RankBetterCtaProps) {
       {state.status === "loading" ? (
         <>
           <SpinnerGap className="size-4 animate-spin" weight="bold" />
-          Generating...
+          Starting...
         </>
       ) : (
         <>
