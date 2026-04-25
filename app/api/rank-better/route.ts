@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { rankBetterRequestSchema } from "@/domains/article";
 import { extractBusinessInfo } from "@/services/tavily-service";
+import { createContentJob } from "@/services/article-service";
 
 const CONTENT_GEN_URL =
   process.env.CONTENT_GEN_URL ?? "https://content-gen.openhook.dev";
@@ -65,6 +66,15 @@ export async function POST(request: Request) {
     }
 
     const startData = await startRes.json();
+
+    // Persist the content job record
+    await createContentJob({
+      jobId: startData.job_id,
+      tenantSlug,
+      businessName: analyzeBody.business_name as string,
+      businessCategory: analyzeBody.business_category as string,
+      businessLocation: analyzeBody.business_location as string,
+    });
 
     return NextResponse.json({
       jobId: startData.job_id,

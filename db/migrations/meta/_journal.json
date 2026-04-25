@@ -15,6 +15,13 @@
       "when": 1777127079231,
       "tag": "0001_jittery_doctor_spectrum",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777148621963,
+      "tag": "0002_sharp_beyonder",
+      "breakpoints": true
     }
   ]
 }

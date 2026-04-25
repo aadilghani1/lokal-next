@@ -73,8 +73,8 @@ export default function GeneratingPage() {
       setStatus(data.status);
       if (data.progress) setProgress(data.progress);
 
-      if (data.status === "completed" && data.article?.id) {
-        router.push(`/dashboard/articles/${data.article.id}`);
+      if (data.status === "completed" && data.articlesCreated) {
+        router.push(`/dashboard/results/${jobId}?tenantSlug=${encodeURIComponent(tenantSlug)}`);
       }
 
       if (data.status === "failed") {

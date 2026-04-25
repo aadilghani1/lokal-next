@@ -3,12 +3,52 @@ export type ArticleStatus = "draft" | "generating" | "published" | "failed";
 export interface BlogArticle {
   id: string;
   jobId: string;
+  contentJobId: string | null;
   profileId: string;
   tenantSlug: string;
   slug: string;
   title: string;
   markdownContent: string;
+  clusterKeywords: string[] | null;
+  searchVolume: number | null;
+  keywordDifficulty: number | null;
   status: ArticleStatus;
   createdAt: Date;
   publishedAt: Date | null;
+}
+
+export interface ContentJob {
+  id: string;
+  jobId: string;
+  tenantSlug: string;
+  businessName: string | null;
+  businessCategory: string | null;
+  businessLocation: string | null;
+  competitors: CompetitorResult[];
+  topicClusters: TopicClusterResult[];
+  totalKeywordsFound: number;
+  totalClusters: number;
+  status: string;
+  createdAt: Date;
+}
+
+export interface CompetitorResult {
+  url: string;
+  domain: string;
+  pages_crawled: number;
+  organic_traffic: number | null;
+  organic_keywords: number | null;
+  ranked_keywords_count: number;
+  top_pages: Record<string, unknown>[];
+}
+
+export interface TopicClusterResult {
+  id: number;
+  label: string;
+  keywords: string[];
+  total_search_volume: number;
+  avg_keyword_difficulty: number;
+  avg_cpc: number;
+  competitor_coverage: Record<string, number>;
+  opportunity_score: number;
 }

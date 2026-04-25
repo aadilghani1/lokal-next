@@ -45,16 +45,40 @@ export const audits = pgTable("audits", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const contentJobs = pgTable("content_jobs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  jobId: text("job_id").notNull().unique(),
+  tenantSlug: text("tenant_slug").notNull(),
+  businessName: text("business_name"),
+  businessCategory: text("business_category"),
+  businessLocation: text("business_location"),
+  competitors: jsonb("competitors"),
+  topicClusters: jsonb("topic_clusters"),
+  totalKeywordsFound: integer("total_keywords_found"),
+  totalClusters: integer("total_clusters"),
+  agentToolCalls: jsonb("agent_tool_calls"),
+  agentInputTokens: integer("agent_input_tokens"),
+  agentOutputTokens: integer("agent_output_tokens"),
+  status: text("status", { enum: ["processing", "completed", "failed"] })
+    .notNull()
+    .default("processing"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const articles = pgTable(
   "articles",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     jobId: text("job_id").notNull(),
+    contentJobId: uuid("content_job_id").references(() => contentJobs.id),
     profileId: uuid("profile_id").references(() => profiles.id),
     tenantSlug: text("tenant_slug").notNull(),
     slug: text("slug").notNull(),
     title: text("title").notNull(),
     markdownContent: text("markdown_content").notNull(),
+    clusterKeywords: jsonb("cluster_keywords"),
+    searchVolume: integer("search_volume"),
+    keywordDifficulty: integer("keyword_difficulty"),
     status: text("status", { enum: ["draft", "generating", "published", "failed"] })
       .notNull()
       .default("generating"),

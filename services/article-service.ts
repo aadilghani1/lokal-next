@@ -1,54 +1,160 @@
 "use server";
 
 import { db } from "@/db";
-import { articles } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
-import { createArticleSchema, type CreateArticleInput } from "@/domains/article";
-import type { BlogArticle } from "@/domains/article";
+import { articles, contentJobs } from "@/db/schema";
+import { eq, and, desc } from "drizzle-orm";
+import type { BlogArticle, ContentJob } from "@/domains/article";
 
 function slugify(text: string): string {
   return text
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replace(/^-|-$/g, "")
+    .slice(0, 80);
 }
 
 function rowToArticle(row: typeof articles.$inferSelect): BlogArticle {
   return {
     id: row.id,
     jobId: row.jobId,
+    contentJobId: row.contentJobId ?? null,
     profileId: row.profileId ?? "",
     tenantSlug: row.tenantSlug,
     slug: row.slug,
     title: row.title,
     markdownContent: row.markdownContent,
+    clusterKeywords: row.clusterKeywords as string[] | null,
+    searchVolume: row.searchVolume,
+    keywordDifficulty: row.keywordDifficulty,
     status: row.status as BlogArticle["status"],
     createdAt: row.createdAt,
     publishedAt: row.publishedAt,
   };
 }
 
-export async function createArticle(
-  input: CreateArticleInput
-): Promise<BlogArticle> {
-  const params = createArticleSchema.parse(input);
-  const slug = slugify(params.title);
+// --- Content Jobs ---
+
+export async function createContentJob(data: {
+  jobId: string;
+  tenantSlug: string;
+  businessName?: string;
+  businessCategory?: string;
+  businessLocation?: string;
+}): Promise<ContentJob> {
+  const [row] = await db
+    .insert(contentJobs)
+    .values({
+      jobId: data.jobId,
+      tenantSlug: data.tenantSlug,
+      businessName: data.businessName,
+      businessCategory: data.businessCategory,
+      businessLocation: data.businessLocation,
+      status: "processing",
+    })
+    .onConflictDoUpdate({
+      target: [contentJobs.jobId],
+      set: { status: "processing" as const },
+    })
+    .returning();
+
+  return rowToContentJob(row);
+}
+
+export async function completeContentJob(
+  jobId: string,
+  data: {
+    competitors: unknown[];
+    topicClusters: unknown[];
+    totalKeywordsFound: number;
+    totalClusters: number;
+    agentToolCalls: unknown[];
+    agentInputTokens: number;
+    agentOutputTokens: number;
+  }
+): Promise<ContentJob> {
+  const [row] = await db
+    .update(contentJobs)
+    .set({
+      competitors: data.competitors,
+      topicClusters: data.topicClusters,
+      totalKeywordsFound: data.totalKeywordsFound,
+      totalClusters: data.totalClusters,
+      agentToolCalls: data.agentToolCalls,
+      agentInputTokens: data.agentInputTokens,
+      agentOutputTokens: data.agentOutputTokens,
+      status: "completed" as const,
+    })
+    .where(eq(contentJobs.jobId, jobId))
+    .returning();
+
+  if (!row) throw new Error("Content job not found");
+  return rowToContentJob(row);
+}
+
+export async function getContentJobByJobId(jobId: string): Promise<ContentJob | null> {
+  const [row] = await db
+    .select()
+    .from(contentJobs)
+    .where(eq(contentJobs.jobId, jobId))
+    .limit(1);
+
+  return row ? rowToContentJob(row) : null;
+}
+
+function rowToContentJob(row: typeof contentJobs.$inferSelect): ContentJob {
+  return {
+    id: row.id,
+    jobId: row.jobId,
+    tenantSlug: row.tenantSlug,
+    businessName: row.businessName,
+    businessCategory: row.businessCategory,
+    businessLocation: row.businessLocation,
+    competitors: (row.competitors as ContentJob["competitors"]) ?? [],
+    topicClusters: (row.topicClusters as ContentJob["topicClusters"]) ?? [],
+    totalKeywordsFound: row.totalKeywordsFound ?? 0,
+    totalClusters: row.totalClusters ?? 0,
+    status: row.status,
+    createdAt: row.createdAt,
+  };
+}
+
+// --- Articles ---
+
+export async function createArticle(input: {
+  jobId: string;
+  contentJobId?: string;
+  tenantSlug: string;
+  title: string;
+  markdownContent: string;
+  clusterKeywords?: string[];
+  searchVolume?: number;
+  keywordDifficulty?: number;
+}): Promise<BlogArticle> {
+  const slug = slugify(input.title);
 
   const [row] = await db
     .insert(articles)
     .values({
-      jobId: params.jobId,
-      tenantSlug: params.tenantSlug,
+      jobId: input.jobId,
+      contentJobId: input.contentJobId,
+      tenantSlug: input.tenantSlug,
       slug,
-      title: params.title,
-      markdownContent: params.markdownContent,
+      title: input.title,
+      markdownContent: input.markdownContent,
+      clusterKeywords: input.clusterKeywords,
+      searchVolume: input.searchVolume,
+      keywordDifficulty: input.keywordDifficulty,
       status: "draft",
     })
     .onConflictDoUpdate({
       target: [articles.tenantSlug, articles.slug],
       set: {
-        markdownContent: params.markdownContent,
-        jobId: params.jobId,
+        markdownContent: input.markdownContent,
+        jobId: input.jobId,
+        contentJobId: input.contentJobId,
+        clusterKeywords: input.clusterKeywords,
+        searchVolume: input.searchVolume,
+        keywordDifficulty: input.keywordDifficulty,
         status: "draft" as const,
       },
     })
@@ -57,9 +163,7 @@ export async function createArticle(
   return rowToArticle(row);
 }
 
-export async function getArticleById(
-  id: string
-): Promise<BlogArticle | null> {
+export async function getArticleById(id: string): Promise<BlogArticle | null> {
   const [row] = await db
     .select()
     .from(articles)
@@ -108,7 +212,16 @@ export async function getArticlesByTenant(
   return rows.map(rowToArticle);
 }
 
+export async function getArticlesByJobId(jobId: string): Promise<BlogArticle[]> {
+  const rows = await db
+    .select()
+    .from(articles)
+    .where(eq(articles.jobId, jobId))
+    .orderBy(desc(articles.createdAt));
+  return rows.map(rowToArticle);
+}
+
 export async function getAllArticles(): Promise<BlogArticle[]> {
-  const rows = await db.select().from(articles);
+  const rows = await db.select().from(articles).orderBy(desc(articles.createdAt));
   return rows.map(rowToArticle);
 }
