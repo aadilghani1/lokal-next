@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useState, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { EventFeed } from "@/components/generating/event-feed";
@@ -16,15 +16,46 @@ export default function GeneratingPage() {
   const tenantSlug = searchParams.get("tenantSlug") ?? "default";
   const businessName = searchParams.get("businessName") ?? "Your Business";
 
-  const { events, status } = useEventStream(jobId || null);
-  const [pollFallback, setPollFallback] = useState(false);
+  const { events: sseEvents, status } = useEventStream(jobId || null);
+  const [hydratedEvents, setHydratedEvents] = useState<SSEEvent[]>([]);
+  const hydrated = useRef(false);
 
-  // If SSE fails, fall back to polling
+  // On mount: fetch current progress from DB and convert to events
   useEffect(() => {
-    if (status === "error" && events.length <= 1) {
-      setPollFallback(true);
-    }
-  }, [status, events.length]);
+    if (!jobId || hydrated.current) return;
+    hydrated.current = true;
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/rank-better/${jobId}?tenantSlug=${encodeURIComponent(tenantSlug)}`
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (data.status === "completed" && data.articlesCreated) {
+          router.push(
+            `/dashboard/results/${jobId}?tenantSlug=${encodeURIComponent(tenantSlug)}`
+          );
+          return;
+        }
+
+        const progress = data.progress;
+        if (!progress?.stages) return;
+
+        const restored: SSEEvent[] = progress.stages.map(
+          (s: { name: string; detail: string | null }) => ({
+            event: "stage" as const,
+            data: { stage: s.name, detail: s.detail },
+          })
+        );
+        setHydratedEvents(restored);
+      } catch {}
+    })();
+  }, [jobId, tenantSlug, router]);
+
+  // Merge: hydrated (from DB) + live SSE events
+  const allEvents = [...hydratedEvents, ...sseEvents];
 
   // Redirect on complete
   useEffect(() => {
@@ -38,7 +69,15 @@ export default function GeneratingPage() {
     }
   }, [status, jobId, tenantSlug, router]);
 
-  // Poll fallback
+  // Poll fallback if SSE fails completely
+  const [pollFallback, setPollFallback] = useState(false);
+
+  useEffect(() => {
+    if (status === "error" && sseEvents.length <= 1) {
+      setPollFallback(true);
+    }
+  }, [status, sseEvents.length]);
+
   const poll = useCallback(async () => {
     if (!jobId || !pollFallback) return;
     try {
@@ -47,6 +86,18 @@ export default function GeneratingPage() {
       );
       if (!res.ok) return;
       const data = await res.json();
+
+      // Update hydrated events from progress
+      if (data.progress?.stages) {
+        const restored: SSEEvent[] = data.progress.stages.map(
+          (s: { name: string; detail: string | null }) => ({
+            event: "stage" as const,
+            data: { stage: s.name, detail: s.detail },
+          })
+        );
+        setHydratedEvents(restored);
+      }
+
       if (data.status === "completed" && data.articlesCreated) {
         router.push(
           `/dashboard/results/${jobId}?tenantSlug=${encodeURIComponent(tenantSlug)}`
@@ -88,7 +139,10 @@ export default function GeneratingPage() {
           </div>
         </div>
 
-        <EventFeed events={events} isStreaming={status === "connected" || status === "connecting"} />
+        <EventFeed
+          events={allEvents}
+          isStreaming={status === "connected" || status === "connecting" || pollFallback}
+        />
       </div>
     </>
   );
