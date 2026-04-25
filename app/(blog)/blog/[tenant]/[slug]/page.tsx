@@ -20,6 +20,17 @@ export default async function BlogArticlePage({
 
   return (
     <>
+      {article.schemaJsonld && article.schemaJsonld.length > 0 && (
+        <>
+          {article.schemaJsonld.map((schema, i) => (
+            <script
+              key={i}
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+            />
+          ))}
+        </>
+      )}
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2.5">

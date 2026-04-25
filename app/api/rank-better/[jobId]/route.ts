@@ -26,6 +26,7 @@ interface BackendArticle {
   content_type: string;
   competitive_angle: string;
   article_markdown: string;
+  schema_jsonld?: Record<string, unknown>[];
 }
 
 export async function GET(
@@ -106,6 +107,7 @@ export async function GET(
             ],
             searchVolume: undefined,
             keywordDifficulty: undefined,
+            schemaJsonld: ba.schema_jsonld,
           });
           createdArticles.push({
             id: article.id,

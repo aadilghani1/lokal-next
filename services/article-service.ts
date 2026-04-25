@@ -26,6 +26,7 @@ function rowToArticle(row: typeof articles.$inferSelect): BlogArticle {
     clusterKeywords: row.clusterKeywords as string[] | null,
     searchVolume: row.searchVolume,
     keywordDifficulty: row.keywordDifficulty,
+    schemaJsonld: row.schemaJsonld as Record<string, unknown>[] | null,
     status: row.status as BlogArticle["status"],
     createdAt: row.createdAt,
     publishedAt: row.publishedAt,
@@ -129,6 +130,7 @@ export async function createArticle(input: {
   clusterKeywords?: string[];
   searchVolume?: number;
   keywordDifficulty?: number;
+  schemaJsonld?: unknown[];
 }): Promise<BlogArticle> {
   const slug = slugify(input.title);
 
@@ -144,6 +146,7 @@ export async function createArticle(input: {
       clusterKeywords: input.clusterKeywords,
       searchVolume: input.searchVolume,
       keywordDifficulty: input.keywordDifficulty,
+      schemaJsonld: input.schemaJsonld,
       status: "draft",
     })
     .onConflictDoUpdate({
@@ -155,6 +158,7 @@ export async function createArticle(input: {
         clusterKeywords: input.clusterKeywords,
         searchVolume: input.searchVolume,
         keywordDifficulty: input.keywordDifficulty,
+        schemaJsonld: input.schemaJsonld,
         status: "draft" as const,
       },
     })
