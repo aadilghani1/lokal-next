@@ -23,8 +23,8 @@ export default async function AuditPage({
   const { url } = await searchParams;
   const audit = await getAudit(url ?? "demo");
   const businessName = audit.business?.name ?? "Your Business";
-  const tenantSlug = audit.business
-    ? slugifyTenant(audit.business.name)
+  const tenantSlug = audit.business?.name
+    ? slugifyTenant(audit.business.name) || "business"
     : "demo";
 
   return (
