@@ -1,9 +1,7 @@
 "use server";
 
-import { db } from "@/db";
-import { audits } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import type { ProfileAudit, AuditCategory, Competitor } from "@/domains/profile";
+import type { ProfileAudit, AuditCategory, Competitor } from "@/domains/audit";
+import { searchGbpCompetitors } from "@/services/tavily-service";
 
 const MOCK_CATEGORIES: AuditCategory[] = [
   { name: "Reviews", score: 85, maxScore: 100, suggestions: ["Respond to all reviews within 24 hours", "Ask satisfied customers for reviews after each visit"] },
@@ -21,12 +19,10 @@ const MOCK_COMPETITORS: Competitor[] = [
   { rank: 5, name: "Maple & Wheat", url: "https://maps.google.com/place/maple-wheat", rating: 4.3, reviewCount: 156, overallScore: 58 },
 ];
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function getMockAudit(profileId: string): ProfileAudit {
+function buildMockAudit(identifier: string): ProfileAudit {
   return {
     id: crypto.randomUUID(),
-    profileId,
+    profileId: identifier,
     overallScore: 72,
     categories: MOCK_CATEGORIES,
     competitors: MOCK_COMPETITORS,
@@ -34,27 +30,40 @@ function getMockAudit(profileId: string): ProfileAudit {
   };
 }
 
-export async function getAudit(profileId: string): Promise<ProfileAudit> {
-  if (!UUID_RE.test(profileId)) {
-    return getMockAudit(profileId);
+const auditCache = new Map<string, ProfileAudit>();
+
+export async function getAudit(urlOrId: string): Promise<ProfileAudit> {
+  if (!urlOrId || urlOrId === "demo") {
+    return buildMockAudit("demo");
   }
 
-  const [existing] = await db
-    .select()
-    .from(audits)
-    .where(eq(audits.profileId, profileId))
-    .limit(1);
+  const cached = auditCache.get(urlOrId);
+  if (cached) return cached;
 
-  if (existing) {
-    return {
-      id: existing.id,
-      profileId: existing.profileId,
-      overallScore: existing.overallScore,
-      categories: existing.categories as AuditCategory[],
-      competitors: existing.competitors as Competitor[],
-      createdAt: existing.createdAt,
+  try {
+    const competitors = await searchGbpCompetitors(urlOrId);
+
+    if (competitors.length === 0) {
+      return buildMockAudit(urlOrId);
+    }
+
+    const avgScore = Math.round(
+      competitors.reduce((sum, c) => sum + c.overallScore, 0) / competitors.length
+    );
+
+    const audit: ProfileAudit = {
+      id: crypto.randomUUID(),
+      profileId: urlOrId,
+      overallScore: Math.min(avgScore, 100),
+      categories: MOCK_CATEGORIES,
+      competitors,
+      createdAt: new Date(),
     };
-  }
 
-  return getMockAudit(profileId);
+    auditCache.set(urlOrId, audit);
+    return audit;
+  } catch (err) {
+    console.error("Tavily search failed, falling back to mock:", err);
+    return buildMockAudit(urlOrId);
+  }
 }

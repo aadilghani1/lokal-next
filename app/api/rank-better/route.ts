@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import { createArticle } from "@/services/article-service";
-
-interface RankBetterRequest {
-  gbpUrl: string;
-  tenantSlug?: string;
-}
+import { rankBetterRequestSchema } from "@/domains/article";
 
 interface RankBetterResponse {
   jobId: string;
@@ -65,21 +61,22 @@ Write blog content that targets your specific city and neighborhood.
 export async function POST(
   request: Request
 ): Promise<NextResponse<RankBetterResponse | { error: string }>> {
-  let body: RankBetterRequest;
+  let raw: unknown;
   try {
-    body = (await request.json()) as RankBetterRequest;
+    raw = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { gbpUrl, tenantSlug = "tenant1" } = body;
-
-  if (!gbpUrl || typeof gbpUrl !== "string") {
+  const parsed = rankBetterRequestSchema.safeParse(raw);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "gbpUrl is required" },
+      { error: parsed.error.issues[0]?.message ?? "Invalid request" },
       { status: 400 }
     );
   }
+
+  const { tenantSlug } = parsed.data;
 
   try {
     const jobId = crypto.randomUUID();

@@ -1,6 +1,6 @@
 "use client";
 
-import type { AuditCategory } from "@/domains/profile";
+import type { AuditCategory } from "@/domains/audit";
 import {
   Progress,
   ProgressLabel,

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
-import { GBP_URL_EXAMPLES } from "@/domains/profile/constants";
+import { GBP_URL_EXAMPLES } from "@/domains/profile";
 import { GrainShader } from "./grain-shader";
 
 export function Hero() {

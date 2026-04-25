@@ -1,4 +1,4 @@
-import type { Competitor } from "@/domains/profile";
+import type { Competitor } from "@/domains/audit";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,

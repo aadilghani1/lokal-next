@@ -3,14 +3,8 @@
 import { db } from "@/db";
 import { articles } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { createArticleSchema, type CreateArticleInput } from "@/domains/article";
 import type { BlogArticle } from "@/domains/article";
-
-interface CreateArticleParams {
-  jobId: string;
-  markdownContent: string;
-  tenantSlug: string;
-  title: string;
-}
 
 function slugify(text: string): string {
   return text
@@ -35,8 +29,9 @@ function rowToArticle(row: typeof articles.$inferSelect): BlogArticle {
 }
 
 export async function createArticle(
-  params: CreateArticleParams
+  input: CreateArticleInput
 ): Promise<BlogArticle> {
+  const params = createArticleSchema.parse(input);
   const slug = slugify(params.title);
 
   const [row] = await db
@@ -48,6 +43,14 @@ export async function createArticle(
       title: params.title,
       markdownContent: params.markdownContent,
       status: "draft",
+    })
+    .onConflictDoUpdate({
+      target: [articles.tenantSlug, articles.slug],
+      set: {
+        markdownContent: params.markdownContent,
+        jobId: params.jobId,
+        status: "draft" as const,
+      },
     })
     .returning();
 

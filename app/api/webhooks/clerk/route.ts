@@ -4,17 +4,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-
-interface ClerkUserEvent {
-  data: {
-    id: string;
-    email_addresses: { email_address: string }[];
-    first_name: string | null;
-    last_name: string | null;
-    image_url: string | null;
-  };
-  type: string;
-}
+import { clerkWebhookEventSchema } from "@/domains/user";
 
 export async function POST(request: Request) {
   const headerPayload = await headers();
@@ -35,19 +25,25 @@ export async function POST(request: Request) {
   }
 
   const wh = new Webhook(webhookSecret);
-  let event: ClerkUserEvent;
+  let verified: unknown;
 
   try {
-    event = wh.verify(payload, {
+    verified = wh.verify(payload, {
       "svix-id": svixId,
       "svix-timestamp": svixTimestamp,
       "svix-signature": svixSignature,
-    }) as ClerkUserEvent;
+    });
   } catch {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  const { data, type } = event;
+  const parsed = clerkWebhookEventSchema.safeParse(verified);
+  if (!parsed.success) {
+    console.error("Webhook payload validation failed:", parsed.error);
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+
+  const { data, type } = parsed.data;
   const email = data.email_addresses[0]?.email_address ?? "";
   const name = [data.first_name, data.last_name].filter(Boolean).join(" ") || null;
 

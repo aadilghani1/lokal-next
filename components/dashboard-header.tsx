@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -31,18 +32,18 @@ export function DashboardHeader({ segments }: DashboardHeaderProps) {
           {segments.map((segment, i) => {
             const isLast = i === segments.length - 1;
             return (
-              <BreadcrumbItem key={segment.label}>
-                {isLast ? (
-                  <BreadcrumbPage>{segment.label}</BreadcrumbPage>
-                ) : (
-                  <>
+              <Fragment key={segment.label}>
+                <BreadcrumbItem>
+                  {isLast ? (
+                    <BreadcrumbPage>{segment.label}</BreadcrumbPage>
+                  ) : (
                     <BreadcrumbLink href={segment.href}>
                       {segment.label}
                     </BreadcrumbLink>
-                    <BreadcrumbSeparator />
-                  </>
-                )}
-              </BreadcrumbItem>
+                  )}
+                </BreadcrumbItem>
+                {!isLast && <BreadcrumbSeparator />}
+              </Fragment>
             );
           })}
         </BreadcrumbList>
