@@ -1,8 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Badge } from "@/components/ui/badge";
-import { SearchIcon, GlobeIcon, BarChart3Icon, WrenchIcon } from "lucide-react";
 
 interface ToolUIProps {
   name: string;
@@ -13,17 +11,17 @@ interface ToolUIProps {
 type ToolRenderer = (props: ToolUIProps) => ReactNode;
 
 function KeywordSerpUI({ input, output_preview }: ToolUIProps) {
+  const keyword = String(input.keyword ?? "");
   return (
-    <div className="rounded-md border bg-card overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2 bg-muted/50">
-        <SearchIcon className="size-3.5 text-blue-500" />
-        <span className="text-xs font-medium">SERP Analysis</span>
-        <Badge variant="outline" className="ml-auto text-[10px]">Google</Badge>
+    <div className="rounded-lg border border-border/60 overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-border/40 flex items-baseline justify-between">
+        <span className="font-mono text-[11px] tracking-wide uppercase text-muted-foreground">serp</span>
+        <span className="text-[10px] text-muted-foreground/60">via Google</span>
       </div>
-      <div className="px-3 py-2">
-        <p className="text-sm font-medium">&ldquo;{String(input.keyword)}&rdquo;</p>
+      <div className="px-4 py-3">
+        <p className="font-heading text-[15px] font-semibold tracking-tight">{keyword}</p>
         {output_preview && (
-          <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 font-mono">{output_preview}</p>
+          <p className="text-[11px] text-muted-foreground/70 mt-2 font-mono leading-relaxed line-clamp-2">{output_preview}</p>
         )}
       </div>
     </div>
@@ -33,20 +31,22 @@ function KeywordSerpUI({ input, output_preview }: ToolUIProps) {
 function KeywordResearchUI({ input, output_preview }: ToolUIProps) {
   const keywords = (input.keywords as string[]) ?? [];
   return (
-    <div className="rounded-md border bg-card overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2 bg-muted/50">
-        <BarChart3Icon className="size-3.5 text-purple-500" />
-        <span className="text-xs font-medium">Keyword Research</span>
-        <Badge variant="outline" className="ml-auto text-[10px]">DataForSEO</Badge>
+    <div className="rounded-lg border border-border/60 overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-border/40 flex items-baseline justify-between">
+        <span className="font-mono text-[11px] tracking-wide uppercase text-muted-foreground">keywords</span>
+        <span className="text-[10px] text-muted-foreground/60">via DataForSEO</span>
       </div>
-      <div className="px-3 py-2">
-        <div className="flex flex-wrap gap-1">
-          {keywords.slice(0, 5).map((kw) => (
-            <Badge key={kw} variant="secondary" className="text-[10px]">{kw}</Badge>
+      <div className="px-4 py-3">
+        <div className="flex flex-wrap gap-1.5">
+          {keywords.slice(0, 6).map((kw) => (
+            <span key={kw} className="inline-block border border-border/50 rounded px-2 py-0.5 text-[11px] font-mono">{kw}</span>
           ))}
+          {keywords.length > 6 && (
+            <span className="text-[11px] text-muted-foreground/50 self-center">+{keywords.length - 6}</span>
+          )}
         </div>
         {output_preview && (
-          <p className="text-[11px] text-muted-foreground mt-1.5 line-clamp-2 font-mono">{output_preview}</p>
+          <p className="text-[11px] text-muted-foreground/70 mt-2 font-mono leading-relaxed line-clamp-2">{output_preview}</p>
         )}
       </div>
     </div>
@@ -54,17 +54,17 @@ function KeywordResearchUI({ input, output_preview }: ToolUIProps) {
 }
 
 function TavilySearchUI({ input, output_preview }: ToolUIProps) {
+  const query = String(input.query ?? "");
   return (
-    <div className="rounded-md border bg-card overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2 bg-muted/50">
-        <GlobeIcon className="size-3.5 text-green-500" />
-        <span className="text-xs font-medium">Web Search</span>
-        <Badge variant="outline" className="ml-auto text-[10px]">Tavily</Badge>
+    <div className="rounded-lg border border-border/60 overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-border/40 flex items-baseline justify-between">
+        <span className="font-mono text-[11px] tracking-wide uppercase text-muted-foreground">search</span>
+        <span className="text-[10px] text-muted-foreground/60">via Tavily</span>
       </div>
-      <div className="px-3 py-2">
-        <p className="text-sm font-medium">&ldquo;{String(input.query)}&rdquo;</p>
+      <div className="px-4 py-3">
+        <p className="text-sm italic text-foreground/80">&ldquo;{query}&rdquo;</p>
         {output_preview && (
-          <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 font-mono">{output_preview}</p>
+          <p className="text-[11px] text-muted-foreground/70 mt-2 font-mono leading-relaxed line-clamp-2">{output_preview}</p>
         )}
       </div>
     </div>
@@ -73,17 +73,13 @@ function TavilySearchUI({ input, output_preview }: ToolUIProps) {
 
 function DefaultToolUI({ name, input, output_preview }: ToolUIProps) {
   return (
-    <div className="rounded-md border bg-card overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2 bg-muted/50">
-        <WrenchIcon className="size-3.5 text-muted-foreground" />
-        <code className="text-xs font-mono">{name}</code>
-        {output_preview && (
-          <Badge variant="outline" className="ml-auto text-[10px] text-green-600 border-green-200">done</Badge>
-        )}
+    <div className="rounded-lg border border-border/60 overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-border/40">
+        <code className="font-mono text-[11px] tracking-wide">{name}</code>
       </div>
-      <div className="px-3 py-2">
-        <p className="text-[11px] text-muted-foreground font-mono line-clamp-2">
-          {JSON.stringify(input).slice(0, 120)}
+      <div className="px-4 py-3">
+        <p className="text-[11px] text-muted-foreground/70 font-mono leading-relaxed line-clamp-2">
+          {JSON.stringify(input).slice(0, 150)}
         </p>
       </div>
     </div>

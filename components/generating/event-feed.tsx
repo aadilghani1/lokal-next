@@ -3,16 +3,8 @@
 import { useRef, useEffect } from "react";
 import type { SSEEvent } from "@/hooks/use-event-stream";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { ToolUI } from "./tool-registry";
-import {
-  CheckCircleIcon,
-  BrainIcon,
-  PenLineIcon,
-  AlertCircleIcon,
-  FileTextIcon,
-} from "lucide-react";
 
 function StageEvent({ stage, detail }: { stage: string; detail: string | null }) {
   const LABELS: Record<string, string> = {
@@ -29,58 +21,61 @@ function StageEvent({ stage, detail }: { stage: string; detail: string | null })
   };
 
   return (
-    <div className="flex items-start gap-3 py-2">
-      <CheckCircleIcon className="size-4 text-primary mt-0.5 shrink-0" />
+    <div className="flex items-baseline gap-3 py-1.5">
+      <span className="size-1.5 rounded-full bg-foreground/20 shrink-0 mt-1.5" />
       <div>
-        <span className="text-sm font-medium">{LABELS[stage] ?? stage}</span>
-        {detail && <p className="text-xs text-muted-foreground mt-0.5">{detail}</p>}
+        <span className="text-[13px] font-medium">{LABELS[stage] ?? stage}</span>
+        {detail && <p className="text-[11px] text-muted-foreground/60 mt-0.5">{detail}</p>}
       </div>
     </div>
   );
 }
 
 function ToolCallEvent({ name, input, output_preview }: { name: string; input: Record<string, unknown>; output_preview: string }) {
-  return <ToolUI name={name} input={input} output_preview={output_preview} />;
+  return (
+    <div className="ml-4">
+      <ToolUI name={name} input={input} output_preview={output_preview} />
+    </div>
+  );
 }
 
 function ThinkingEvent({ text }: { text: string }) {
   return (
-    <div className="flex items-start gap-2.5 py-1.5 pl-2 border-l-2 border-amber-300/40 ml-2">
-      <BrainIcon className="size-3.5 text-amber-500 mt-0.5 shrink-0" />
-      <p className="text-xs text-muted-foreground italic line-clamp-2">{text}</p>
+    <div className="ml-4 py-1.5 pl-3 border-l border-border/40">
+      <p className="text-[12px] text-muted-foreground/50 italic leading-relaxed line-clamp-3">{text}</p>
     </div>
   );
 }
 
 function TextEvent({ chunk }: { chunk: string }) {
   if (!chunk.trim()) return null;
-  const preview = chunk.length > 300 ? chunk.slice(0, 300) + "..." : chunk;
+  const preview = chunk.length > 400 ? chunk.slice(0, 400) + "..." : chunk;
   return (
-    <div className="flex items-start gap-2.5 py-1.5 pl-2 border-l-2 border-green-300/40 ml-2">
-      <PenLineIcon className="size-3.5 text-green-600 mt-0.5 shrink-0" />
-      <p className="text-xs text-foreground/70 line-clamp-3">{preview}</p>
+    <div className="ml-4 py-1.5 pl-3 border-l border-foreground/10">
+      <p className="text-[12px] text-foreground/60 leading-relaxed line-clamp-4">{preview}</p>
     </div>
   );
 }
 
 function ArticleEvent({ meta_title, target_keyword, content_type }: { meta_title: string; target_keyword: string; content_type: string }) {
   return (
-    <div className="flex items-center gap-2.5 py-2 px-3 rounded-md bg-primary/5 border border-primary/10">
-      <FileTextIcon className="size-4 text-primary shrink-0" />
-      <span className="text-sm font-medium flex-1">{meta_title || target_keyword}</span>
-      {content_type && (
-        <Badge variant="secondary" className="text-[10px]">{content_type}</Badge>
-      )}
+    <div className="ml-4 rounded-lg border border-border bg-card px-4 py-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="font-heading text-[14px] font-semibold tracking-tight">{meta_title || target_keyword}</span>
+        {content_type && (
+          <span className="text-[10px] font-mono text-muted-foreground/50 uppercase tracking-wider shrink-0">{content_type}</span>
+        )}
+      </div>
     </div>
   );
 }
 
 function CompleteEvent({ articles_count }: { articles_count: number }) {
   return (
-    <div className="flex items-center gap-2.5 py-3 px-3 rounded-md bg-green-50 border border-green-200">
-      <CheckCircleIcon className="size-5 text-green-600 shrink-0" />
-      <span className="text-sm font-medium text-green-700">
-        Complete — {articles_count} article{articles_count !== 1 ? "s" : ""} generated
+    <div className="flex items-baseline gap-3 py-3 mt-2 border-t border-border/30">
+      <span className="size-2 rounded-full bg-foreground shrink-0 mt-1" />
+      <span className="text-[13px] font-semibold">
+        {articles_count} article{articles_count !== 1 ? "s" : ""} generated
       </span>
     </div>
   );
@@ -88,9 +83,8 @@ function CompleteEvent({ articles_count }: { articles_count: number }) {
 
 function ErrorEvent({ message }: { message: string }) {
   return (
-    <div className="flex items-center gap-2.5 py-3 px-3 rounded-md bg-red-50 border border-red-200">
-      <AlertCircleIcon className="size-5 text-destructive shrink-0" />
-      <span className="text-sm font-medium text-destructive">{message}</span>
+    <div className="py-3 mt-2 border-t border-border/30">
+      <p className="text-[13px] font-medium text-destructive">{message}</p>
     </div>
   );
 }
@@ -108,8 +102,8 @@ export function EventFeed({ events, isStreaming }: { events: SSEEvent[]; isStrea
 
   return (
     <Card className="w-full max-w-2xl shadow-[var(--shadow-surface)]">
-      <CardContent className="py-4 max-h-[65vh] overflow-y-auto">
-        <div className="flex flex-col gap-1.5">
+      <CardContent className="py-5 px-5 max-h-[65vh] overflow-y-auto">
+        <div className="flex flex-col gap-2">
           {visibleEvents.map((evt, i) => {
             switch (evt.event) {
               case "stage":
@@ -131,8 +125,8 @@ export function EventFeed({ events, isStreaming }: { events: SSEEvent[]; isStrea
             }
           })}
           {isStreaming && visibleEvents.length > 0 && (
-            <div className="py-2 pl-2">
-              <Shimmer duration={1.5}>Processing...</Shimmer>
+            <div className="py-2 ml-4">
+              <Shimmer duration={2}>Working...</Shimmer>
             </div>
           )}
           <div ref={bottomRef} />
