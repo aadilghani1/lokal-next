@@ -1,0 +1,100 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import { SquaresFour, Storefront, GearSix, MagnifyingGlass, FileText } from "@phosphor-icons/react/dist/ssr";
+import { LogoMark } from "@/components/logo";
+import { OrgSwitcher } from "@/components/org-switcher";
+import { NavUser } from "@/components/nav-user";
+import { SearchForm } from "@/components/search-form";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+} from "@/components/ui/sidebar";
+
+const navMain = [
+  {
+    title: "Platform",
+    items: [
+      {
+        title: "Overview",
+        url: "/dashboard",
+        icon: SquaresFour,
+      },
+      {
+        title: "Profiles",
+        url: "/dashboard/profiles",
+        icon: Storefront,
+      },
+      {
+        title: "Audit",
+        url: "/dashboard/audit/demo",
+        icon: MagnifyingGlass,
+      },
+      {
+        title: "Articles",
+        url: "/dashboard/articles",
+        icon: FileText,
+      },
+    ],
+  },
+  {
+    title: "Account",
+    items: [
+      {
+        title: "Settings",
+        url: "/dashboard/settings",
+        icon: GearSix,
+      },
+    ],
+  },
+];
+
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  return (
+    <Sidebar {...props}>
+      <SidebarHeader>
+        <Link href="/dashboard" className="flex items-center gap-2 px-2 py-1.5">
+          <LogoMark className="size-8 text-sidebar-primary" />
+          <span className="font-heading text-sm font-bold tracking-tight">
+            Lokal
+          </span>
+        </Link>
+        <OrgSwitcher />
+        <SearchForm />
+      </SidebarHeader>
+      <SidebarContent>
+        {navMain.map((group) => (
+          <SidebarGroup key={group.title}>
+            <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton render={<a href={item.url} />}>
+                      <item.icon className="size-4" />
+                      {item.title}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
+      </SidebarContent>
+      <SidebarFooter>
+        <NavUser />
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
+  );
+}
