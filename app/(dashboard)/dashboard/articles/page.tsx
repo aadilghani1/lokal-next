@@ -2,7 +2,7 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getAllArticles } from "@/services/article-service";
-import { FileText, ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
+import { FileText, ArrowSquareOut, Globe } from "@phosphor-icons/react/dist/ssr";
 
 export default async function ArticlesPage() {
   const articles = await getAllArticles();
@@ -43,8 +43,9 @@ export default async function ArticlesPage() {
                         <span className="text-sm font-medium group-hover:text-primary transition-colors">
                           {article.title}
                         </span>
-                        <span className="text-xs text-muted-foreground">
-                          {article.tenantSlug}/{article.slug}
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Globe className="size-3 shrink-0" weight="bold" />
+                          {article.tenantSlug}.{process.env.NEXT_PUBLIC_BLOG_DOMAIN ?? "localhost:3000"}/{article.slug}
                           {article.publishedAt && (
                             <> &middot; {new Date(article.publishedAt).toLocaleDateString()}</>
                           )}

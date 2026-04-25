@@ -2,11 +2,12 @@ import { notFound } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { getArticleById } from "@/services/article-service";
 import { markdownToHtml } from "@/lib/markdown";
+import { getBlogArticleUrl } from "@/lib/blog-url";
 import { ArticleRenderer } from "@/components/blog/article-renderer";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PublishButton } from "./publish-button";
-import { ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
+import { ArrowSquareOut, LinkSimple } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui/button";
 
 export default async function ArticlePreviewPage({
@@ -21,7 +22,7 @@ export default async function ArticlePreviewPage({
 
   const htmlContent = markdownToHtml(article.markdownContent);
   const isDraft = article.status === "draft";
-  const blogUrl = `/blog/${article.tenantSlug}/${article.slug}`;
+  const blogUrl = getBlogArticleUrl(article.tenantSlug, article.slug);
 
   return (
     <>
@@ -50,6 +51,12 @@ export default async function ArticlePreviewPage({
             </span>
           </div>
           <div className="flex items-center gap-2">
+            {!isDraft && (
+              <span className="mr-2 flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs text-muted-foreground">
+                <LinkSimple className="size-3" weight="bold" />
+                {article.tenantSlug}.{process.env.NEXT_PUBLIC_BLOG_DOMAIN ?? "localhost:3000"}
+              </span>
+            )}
             {isDraft ? (
               <PublishButton articleId={article.id} />
             ) : (

@@ -26,6 +26,7 @@ export const profiles = pgTable("profiles", {
   url: text("url").notNull(),
   name: text("name"),
   placeId: text("place_id"),
+  tenantSlug: text("tenant_slug").unique(),
   status: text("status", { enum: ["pending", "active", "error"] })
     .notNull()
     .default("pending"),

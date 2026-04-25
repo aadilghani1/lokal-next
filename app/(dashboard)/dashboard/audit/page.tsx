@@ -7,6 +7,14 @@ import { getAudit } from "@/services/audit-service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
+function slugifyTenant(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 50);
+}
+
 export default async function AuditPage({
   searchParams,
 }: {
@@ -15,6 +23,9 @@ export default async function AuditPage({
   const { url } = await searchParams;
   const audit = await getAudit(url ?? "demo");
   const businessName = audit.business?.name ?? "Your Business";
+  const tenantSlug = audit.business
+    ? slugifyTenant(audit.business.name)
+    : "demo";
 
   return (
     <>
@@ -71,7 +82,7 @@ export default async function AuditPage({
       </div>
 
       <div className="sticky bottom-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-lg px-8 py-4">
-        <RankBetterCta gbpUrl={url ?? ""} />
+        <RankBetterCta gbpUrl={url ?? ""} tenantSlug={tenantSlug} />
       </div>
     </>
   );

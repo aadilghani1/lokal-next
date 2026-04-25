@@ -93,6 +93,21 @@ export async function getArticle(
   return row ? rowToArticle(row) : null;
 }
 
+export async function getArticlesByTenant(
+  tenantSlug: string
+): Promise<BlogArticle[]> {
+  const rows = await db
+    .select()
+    .from(articles)
+    .where(
+      and(
+        eq(articles.tenantSlug, tenantSlug),
+        eq(articles.status, "published")
+      )
+    );
+  return rows.map(rowToArticle);
+}
+
 export async function getAllArticles(): Promise<BlogArticle[]> {
   const rows = await db.select().from(articles);
   return rows.map(rowToArticle);
