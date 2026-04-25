@@ -32,6 +32,7 @@ export const profiles = pgTable("profiles", {
   reviewCount: integer("review_count"),
   tenantSlug: text("tenant_slug").unique(),
   competitorUrls: jsonb("competitor_urls"),
+  photoRefs: jsonb("photo_refs"),
   status: text("status", { enum: ["pending", "active", "error"] })
     .notNull()
     .default("pending"),

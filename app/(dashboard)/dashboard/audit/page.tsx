@@ -60,6 +60,7 @@ export default async function AuditPage({
           rating: audit.business.rating ?? undefined,
           reviewCount: audit.business.reviewCount ?? undefined,
           competitorUrls,
+          photoRefs: audit.business.photoRefs,
         });
 
         profileId = profile.id;

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getArticle } from "@/services/article-service";
+import { getProfileBySlug } from "@/services/profile-service";
 import { markdownToHtml } from "@/lib/markdown";
 import { ArticleRenderer } from "@/components/blog/article-renderer";
 import { LogoMark } from "@/components/logo";
@@ -15,6 +16,9 @@ export default async function BlogArticlePage({
   if (!article) {
     notFound();
   }
+
+  const profile = await getProfileBySlug(tenant);
+  const photoRefs = (profile?.photoRefs as string[]) ?? [];
 
   const htmlContent = markdownToHtml(article.markdownContent);
 
@@ -80,7 +84,32 @@ export default async function BlogArticlePage({
             </div>
           </div>
         </div>
+        {photoRefs.length > 0 && (
+          <div className="mb-10 -mx-2 overflow-hidden rounded-xl">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/api/photos?ref=${photoRefs[0]}`}
+              alt={article.title}
+              className="w-full h-64 object-cover rounded-xl"
+              loading="eager"
+            />
+          </div>
+        )}
         <ArticleRenderer htmlContent={htmlContent} />
+        {photoRefs.length > 1 && (
+          <div className="mt-12 grid grid-cols-2 gap-3">
+            {photoRefs.slice(1, 5).map((ref, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={i}
+                src={`/api/photos?ref=${ref}`}
+                alt={`${article.title} - Photo ${i + 2}`}
+                className="w-full h-40 object-cover rounded-lg"
+                loading="lazy"
+              />
+            ))}
+          </div>
+        )}
       </main>
     </>
   );

@@ -9,6 +9,8 @@ export interface BusinessInfo {
   category: string;
   rating: number | null;
   reviewCount: number | null;
+  photoUrls: string[];
+  photoRefs: string[];
   rawContent: string;
 }
 
@@ -100,6 +102,7 @@ interface PlacesResult {
   types?: string[];
   website?: string;
   editorial_summary?: { overview?: string };
+  photos?: { photo_reference: string; width: number; height: number }[];
 }
 
 async function findPlaceFromMapsUrl(mapsUrl: string): Promise<PlacesResult | null> {
@@ -121,7 +124,7 @@ async function findPlaceFromMapsUrl(mapsUrl: string): Promise<PlacesResult | nul
     const placeId = findData.candidates?.[0]?.place_id;
     if (!placeId) return null;
 
-    const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_address,rating,user_ratings_total,types,website,editorial_summary&key=${GOOGLE_PLACES_API_KEY}`;
+    const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_address,rating,user_ratings_total,types,website,editorial_summary,photos&key=${GOOGLE_PLACES_API_KEY}`;
     const detailsRes = await fetch(detailsUrl);
     const detailsData = await detailsRes.json() as { result?: PlacesResult };
     return detailsData.result ?? null;
@@ -181,6 +184,10 @@ export async function extractBusinessInfo(
         category,
         rating: place.rating ?? null,
         reviewCount: place.user_ratings_total ?? null,
+        photoRefs: (place.photos ?? []).slice(0, 5).map((p) => p.photo_reference),
+        photoUrls: (place.photos ?? []).slice(0, 5).map(
+          (p) => `/api/photos?ref=${p.photo_reference}`
+        ),
         rawContent: JSON.stringify(place),
       };
     }
@@ -221,6 +228,8 @@ export async function extractBusinessInfo(
       category,
       rating,
       reviewCount,
+      photoRefs: [],
+      photoUrls: [],
       rawContent: content.slice(0, 3000),
     };
   } catch (err) {

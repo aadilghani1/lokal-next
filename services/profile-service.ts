@@ -23,6 +23,7 @@ export interface ProfileData {
   reviewCount: number | null;
   tenantSlug: string;
   competitorUrls: string[] | null;
+  photoRefs: string[] | null;
   status: string;
 }
 
@@ -36,6 +37,7 @@ export async function findOrCreateProfile(
     rating?: number;
     reviewCount?: number;
     competitorUrls?: string[];
+    photoRefs?: string[];
   }
 ): Promise<ProfileData> {
   const tenantSlug = slugify(data.name || "business");
@@ -58,6 +60,7 @@ export async function findOrCreateProfile(
         rating: data.rating != null ? Math.round(data.rating * 10) : existing.rating,
         reviewCount: data.reviewCount ?? existing.reviewCount,
         competitorUrls: data.competitorUrls ?? existing.competitorUrls,
+        photoRefs: data.photoRefs ?? existing.photoRefs,
         status: "active",
         updatedAt: new Date(),
       })
@@ -79,6 +82,7 @@ export async function findOrCreateProfile(
       reviewCount: data.reviewCount,
       tenantSlug,
       competitorUrls: data.competitorUrls,
+      photoRefs: data.photoRefs,
       status: "active",
     })
     .onConflictDoUpdate({
@@ -138,6 +142,7 @@ function rowToProfile(row: typeof profiles.$inferSelect): ProfileData {
     reviewCount: row.reviewCount,
     tenantSlug: row.tenantSlug ?? "business",
     competitorUrls: (row.competitorUrls as string[]) ?? null,
+    photoRefs: (row.photoRefs as string[]) ?? null,
     status: row.status,
   };
 }
