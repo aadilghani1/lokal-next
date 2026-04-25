@@ -14,22 +14,15 @@ export default async function ArticlesPage() {
           { label: "Dashboard", href: "/dashboard" },
           { label: "Articles" },
         ]}
+        title="Generated Articles"
+        subtitle="Blog articles generated to improve your local search rankings."
       />
-      <div className="flex flex-1 flex-col gap-6 p-8">
-        <div>
-          <h1 className="font-heading text-xl font-bold tracking-tight">
-            Generated Articles
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Blog articles generated to improve your local search rankings.
-          </p>
-        </div>
-
+      <div className="flex flex-1 flex-col gap-4 p-8">
         {articles.length === 0 ? (
-          <Card>
+          <Card className="shadow-[var(--shadow-surface)]">
             <CardContent className="flex flex-col items-center gap-3 py-12">
               <FileText className="size-10 text-muted-foreground" weight="duotone" />
-              <h3 className="font-semibold">No articles yet</h3>
+              <h3 className="font-medium">No articles yet</h3>
               <p className="text-sm text-muted-foreground text-center max-w-sm">
                 Run an audit on your Google Business Profile and click
                 &quot;Rank Better&quot; to generate your first article.
@@ -44,7 +37,7 @@ export default async function ArticlesPage() {
                 href={`/blog/${article.tenantSlug}/${article.slug}`}
                 className="group"
               >
-                <Card className="transition-shadow hover:shadow-[var(--shadow-button-hover)]">
+                <Card className="shadow-[var(--shadow-surface)] transition-shadow hover:shadow-[var(--shadow-button-hover)]">
                   <CardContent className="flex items-center justify-between py-4">
                     <div className="flex flex-col gap-1">
                       <span className="text-sm font-medium group-hover:text-primary transition-colors">

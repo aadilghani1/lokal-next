@@ -10,14 +10,10 @@ export default function ProfilesPage() {
           { label: "Dashboard", href: "/dashboard" },
           { label: "Profiles" },
         ]}
+        title="Google Business Profiles"
       />
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <div className="flex items-center justify-between">
-          <h1 className="font-heading text-2xl font-bold tracking-tight">
-            Google Business Profiles
-          </h1>
-        </div>
-        <Card>
+      <div className="flex flex-1 flex-col gap-4 p-8">
+        <Card className="shadow-[var(--shadow-surface)]">
           <CardHeader className="flex flex-col items-center gap-2 py-12">
             <Storefront className="size-12 text-muted-foreground" weight="duotone" />
             <CardTitle>No profiles yet</CardTitle>

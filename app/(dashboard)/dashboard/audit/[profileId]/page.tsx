@@ -5,6 +5,7 @@ import { CompetitorTable } from "@/components/audit/competitor-table";
 import { RankBetterCta } from "@/components/audit/rank-better-cta";
 import { getAudit } from "@/services/audit-service";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 export default async function AuditPage({
   params,
@@ -22,53 +23,62 @@ export default async function AuditPage({
           { label: "Dashboard", href: "/dashboard" },
           { label: "Audit" },
         ]}
+        title="Profile Audit"
+        subtitle={`${userCompetitor?.name ?? "Your Business"} · Austin, TX`}
       />
-      <div className="relative flex flex-1 flex-col gap-7 overflow-auto p-8 pb-28">
-        <div className="flex items-center gap-10 rounded-2xl bg-card p-8 shadow-[var(--shadow-surface)]">
-          <ScoreRing score={audit.overallScore} />
-          <div className="flex flex-col gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-widest text-primary">
-              Profile Audit
+      <div className="relative flex flex-1 flex-col gap-8 overflow-auto p-8 pb-24">
+        {/* Score strip */}
+        <div className="flex items-center gap-8">
+          <ScoreRing score={audit.overallScore} size={64} strokeWidth={5} />
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-muted-foreground">
+              Overall Score
             </span>
-            <h1 className="font-heading text-2xl font-bold tracking-tight">
-              {userCompetitor?.name ?? "Your Business"}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              123 Main Street, Austin, TX 78701
-            </p>
-            <div className="flex gap-2 pt-1">
-              <Badge variant="secondary" className="bg-primary/10 text-primary">
-                {userCompetitor?.rating ?? "4.6"} ★
-              </Badge>
-              <Badge variant="secondary">
-                {userCompetitor?.reviewCount ?? 248} reviews
-              </Badge>
-              <Badge variant="secondary">Bakery</Badge>
+            <span className="text-[11px] text-muted-foreground/60">
+              out of 100
+            </span>
+          </div>
+          <Separator orientation="vertical" className="h-8" />
+          <div className="flex gap-2">
+            <Badge variant="secondary" className="bg-primary/10 text-primary">
+              {userCompetitor?.rating ?? "4.6"} ★
+            </Badge>
+            <Badge variant="secondary">
+              {userCompetitor?.reviewCount ?? 248} reviews
+            </Badge>
+            <Badge variant="secondary">Bakery</Badge>
+          </div>
+        </div>
+
+        {/* Two-column: breakdown + competitors */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="flex flex-col gap-5 rounded-2xl bg-card p-6 shadow-[var(--shadow-surface)]">
+            <h2 className="font-heading text-sm font-medium tracking-tight">
+              Breakdown
+            </h2>
+            <div className="flex flex-col gap-3.5">
+              {audit.categories.map((cat) => (
+                <CategoryBar key={cat.name} category={cat} />
+              ))}
             </div>
           </div>
-        </div>
 
-        <div className="flex flex-col gap-4">
-          <h2 className="text-base font-semibold">Category Breakdown</h2>
-          <div className="flex flex-col gap-3">
-            {audit.categories.map((cat) => (
-              <CategoryBar key={cat.name} category={cat} />
-            ))}
+          <div className="flex flex-col gap-5 rounded-2xl bg-card p-6 shadow-[var(--shadow-surface)]">
+            <div className="flex items-center justify-between">
+              <h2 className="font-heading text-sm font-medium tracking-tight">
+                Competitors
+              </h2>
+              <span className="text-[11px] text-muted-foreground">
+                Local visibility rank
+              </span>
+            </div>
+            <CompetitorTable competitors={audit.competitors} userRank={3} />
           </div>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold">Top 5 Competitors</h2>
-            <span className="text-xs text-muted-foreground">
-              Ranked by local visibility
-            </span>
-          </div>
-          <CompetitorTable competitors={audit.competitors} userRank={3} />
         </div>
       </div>
 
-      <div className="sticky bottom-0 z-10 border-t flex justify-center items-center bg-gradient-to-b from-background/0 to-background/50 backdrop-blur-sm px-8 py-4">
+      {/* Sticky CTA */}
+      <div className="sticky bottom-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-lg px-8 py-4">
         <RankBetterCta profileId={profileId} />
       </div>
     </>

@@ -9,27 +9,11 @@ export default function SettingsPage() {
           { label: "Dashboard", href: "/dashboard" },
           { label: "Settings" },
         ]}
+        title="Settings"
       />
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <h1 className="font-heading text-2xl font-bold tracking-tight">
-          Settings
-        </h1>
+      <div className="flex flex-1 flex-col gap-4 p-8">
         <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Organization</CardTitle>
-              <CardDescription>
-                Manage your organization settings and team members.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Use the organization switcher in the sidebar to manage your
-                organizations.
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
+          <Card className="shadow-[var(--shadow-surface)]">
             <CardHeader>
               <CardTitle>Account</CardTitle>
               <CardDescription>
@@ -39,6 +23,19 @@ export default function SettingsPage() {
             <CardContent>
               <p className="text-sm text-muted-foreground">
                 Click your avatar in the sidebar to manage your account.
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="shadow-[var(--shadow-surface)]">
+            <CardHeader>
+              <CardTitle>Preferences</CardTitle>
+              <CardDescription>
+                Configure your dashboard preferences.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Preferences settings coming soon.
               </p>
             </CardContent>
           </Card>

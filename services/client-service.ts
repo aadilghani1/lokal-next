@@ -1,30 +1,19 @@
 "use server";
 
 import { getRequiredAuth } from "@/lib/auth";
-import type { Client } from "@/domains/client";
+import { db } from "@/db";
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
-export async function getCurrentClient(): Promise<Client | null> {
-  const { userId } = await getRequiredAuth();
-  if (!userId) return null;
+export async function getCurrentUser() {
+  const { userId: clerkId } = await getRequiredAuth();
+  if (!clerkId) return null;
 
-  // TODO: query database for client by userId
-  void userId;
-  return null;
-}
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.clerkId, clerkId))
+    .limit(1);
 
-export async function provisionClient(
-  userId: string,
-  name: string
-): Promise<Client> {
-  // TODO: create client record in database
-  const client: Client = {
-    id: crypto.randomUUID(),
-    userId,
-    name,
-    slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  return client;
+  return user ?? null;
 }
