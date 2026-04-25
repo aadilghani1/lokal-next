@@ -17,6 +17,8 @@ export interface CompetitorHit {
   url: string;
   rating: number | null;
   reviewCount: number | null;
+  organicTraffic?: number | null;
+  organicKeywords?: number | null;
 }
 
 function getTavily() {
@@ -232,73 +234,57 @@ function parseLocationFromUrl(url: string): string {
   return placeMatch[1].replace(/\+/g, " ").replace(/@.*/, "").trim();
 }
 
+const CONTENT_GEN_URL = process.env.CONTENT_GEN_URL ?? "https://content-gen.openhook.dev";
+const CONTENT_GEN_TOKEN = process.env.CONTENT_GEN_TOKEN ?? "";
+
 export async function searchCompetitors(
   businessName: string,
   location: string,
   category: string
 ): Promise<CompetitorHit[]> {
-  const tvly = getTavily();
-  if (!tvly) return [];
-
-  const query = category && location
-    ? `best ${category} in ${location} Google Maps`
-    : location
-      ? `top rated businesses near ${location} Google Maps`
-      : `businesses similar to ${businessName} Google Maps`;
-
-  console.log("[tavily] Searching competitors:", query);
+  console.log("[competitors] Discovering via SERP: %s / %s / %s", businessName, location, category);
 
   try {
-    const result = await tvly.search(query, {
-      maxResults: 10,
-      searchDepth: "basic",
-      includeAnswer: false,
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (CONTENT_GEN_TOKEN) headers["Authorization"] = `Bearer ${CONTENT_GEN_TOKEN}`;
+
+    const res = await fetch(`${CONTENT_GEN_URL}/api/v1/discover-competitors`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        business_name: businessName,
+        business_category: category,
+        business_location: location,
+      }),
     });
 
-    const competitors: CompetitorHit[] = [];
-    const seenNames = new Set<string>();
-    const lowerBizName = businessName.toLowerCase();
-
-    for (const r of result.results ?? []) {
-      const text = `${r.title ?? ""} ${r.content ?? ""}`;
-      const entryName = extractNameFromResult(r.title ?? "", businessName);
-
-      if (!entryName) continue;
-      if (entryName.toLowerCase() === lowerBizName) continue;
-      if (seenNames.has(entryName.toLowerCase())) continue;
-      seenNames.add(entryName.toLowerCase());
-
-      competitors.push({
-        name: entryName,
-        url: r.url ?? "#",
-        rating: parseRating(text),
-        reviewCount: parseReviewCount(text),
-      });
-
-      if (competitors.length >= 5) break;
+    if (!res.ok) {
+      console.error("[competitors] Backend returned %d", res.status);
+      return [];
     }
 
-    console.log("[tavily] Found %d competitors", competitors.length);
-    return competitors;
+    const data = await res.json() as {
+      competitors: {
+        domain: string;
+        url: string;
+        title: string;
+        organic_traffic: number | null;
+        organic_keywords: number | null;
+        serp_appearances: number;
+        best_rank: number;
+      }[];
+    };
+
+    return data.competitors.map((c) => ({
+      name: c.title || c.domain,
+      url: c.url,
+      rating: null,
+      reviewCount: null,
+      organicTraffic: c.organic_traffic,
+      organicKeywords: c.organic_keywords,
+    }));
   } catch (err) {
-    console.error("[tavily] Search failed:", err instanceof Error ? err.message : err);
+    console.error("[competitors] Discovery failed:", err instanceof Error ? err.message : err);
     return [];
   }
-}
-
-function extractNameFromResult(title: string, selfName: string): string | null {
-  const cleaned = title
-    .replace(/\s*[-–|·•:]\s*Google Maps.*/i, "")
-    .replace(/\s*[-–|·•:]\s*Yelp.*/i, "")
-    .replace(/\s*[-–|·•:]\s*TripAdvisor.*/i, "")
-    .replace(/^\d+\.\s*/, "")
-    .replace(/\s*\(.*?\)\s*$/, "")
-    .trim();
-
-  if (cleaned.length < 2 || cleaned.length > 80) return null;
-  if (cleaned.toLowerCase().includes("best ")) return null;
-  if (cleaned.toLowerCase().includes("top ")) return null;
-  if (cleaned.toLowerCase() === selfName.toLowerCase()) return null;
-
-  return cleaned;
 }

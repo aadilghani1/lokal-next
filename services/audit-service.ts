@@ -71,54 +71,16 @@ function buildCompetitors(
     return { competitors: [], userRank: 0 };
   }
 
-  const all: { name: string; url: string; rating: number; reviewCount: number; score: number; isSelf: boolean }[] = [];
-
-  for (const hit of hits) {
-    const rating = hit.rating ?? 0;
-    const reviews = hit.reviewCount ?? 0;
-    all.push({
-      name: hit.name,
-      url: hit.url,
-      rating: Math.round(rating * 10) / 10,
-      reviewCount: reviews,
-      score: Math.round(rating * 12 + Math.min(reviews, 500) / 10),
-      isSelf: false,
-    });
-  }
-
-  const selfRating = business.rating ?? 4.0;
-  const selfReviews = business.reviewCount ?? 100;
-  all.push({
-    name: business.name,
-    url: "#",
-    rating: Math.round(selfRating * 10) / 10,
-    reviewCount: selfReviews,
-    score: Math.round(selfRating * 12 + Math.min(selfReviews, 500) / 10),
-    isSelf: true,
-  });
-
-  all.sort((a, b) => b.score - a.score);
-
-  const top5 = all.slice(0, 5);
-  let userRank = top5.findIndex((c) => c.isSelf) + 1;
-
-  if (userRank === 0) {
-    if (top5.length >= 5) top5.pop();
-    top5.push(all.find((c) => c.isSelf)!);
-    top5.sort((a, b) => b.score - a.score);
-    userRank = top5.findIndex((c) => c.isSelf) + 1;
-  }
-
-  const competitors: Competitor[] = top5.map((c, i) => ({
+  const competitors: Competitor[] = hits.slice(0, 5).map((hit, i) => ({
     rank: i + 1,
-    name: c.name,
-    url: c.url,
-    rating: c.rating,
-    reviewCount: c.reviewCount,
-    overallScore: c.score,
+    name: hit.name,
+    url: hit.url,
+    rating: hit.rating ?? 0,
+    reviewCount: hit.reviewCount ?? 0,
+    overallScore: hit.organicTraffic ?? 0,
   }));
 
-  return { competitors, userRank };
+  return { competitors, userRank: competitors.length + 1 };
 }
 
 const DEFAULT_CATEGORIES: AuditCategory[] = [
