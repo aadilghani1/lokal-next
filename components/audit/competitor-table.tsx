@@ -28,9 +28,11 @@ export function CompetitorTable({
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="w-12">#</TableHead>
+              <TableHead className="w-10">#</TableHead>
               <TableHead>Competitor</TableHead>
-              <TableHead className="w-24 text-right">Traffic</TableHead>
+              <TableHead className="w-16 text-center">SERP</TableHead>
+              <TableHead className="w-20 text-right">Traffic</TableHead>
+              <TableHead className="w-20 text-right">Keywords</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -42,7 +44,7 @@ export function CompetitorTable({
                   className={isUser ? "bg-accent hover:bg-accent" : ""}
                 >
                   <TableCell
-                    className={`font-mono text-sm ${
+                    className={`font-mono text-xs ${
                       isUser ? "text-primary" : "text-muted-foreground"
                     }`}
                   >
@@ -51,7 +53,7 @@ export function CompetitorTable({
                   <TableCell>
                     <span className="flex items-center gap-2">
                       <span
-                        className={`text-sm font-medium ${
+                        className={`text-sm font-medium truncate max-w-[180px] ${
                           isUser ? "text-primary font-semibold" : ""
                         }`}
                       >
@@ -64,15 +66,25 @@ export function CompetitorTable({
                       )}
                     </span>
                   </TableCell>
-                  <TableCell
-                    className={`text-right font-mono text-sm font-bold ${
-                      competitor.rank <= 2
-                        ? "text-primary"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {competitor.overallScore > 0
-                      ? competitor.overallScore.toLocaleString()
+                  <TableCell className="text-center">
+                    {competitor.serpRank ? (
+                      <span className={`inline-flex items-center justify-center size-6 rounded-full text-xs font-bold ${
+                        competitor.serpRank <= 3 ? "bg-primary/10 text-primary" :
+                        competitor.serpRank <= 10 ? "bg-muted text-foreground" :
+                        "bg-muted text-muted-foreground"
+                      }`}>
+                        {competitor.serpRank}
+                      </span>
+                    ) : "—"}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                    {competitor.organicTraffic
+                      ? competitor.organicTraffic.toLocaleString()
+                      : "—"}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                    {competitor.organicKeywords
+                      ? competitor.organicKeywords.toLocaleString()
                       : "—"}
                   </TableCell>
                 </TableRow>

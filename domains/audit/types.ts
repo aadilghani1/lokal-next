@@ -21,4 +21,7 @@ export interface Competitor {
   rating: number;
   reviewCount: number;
   overallScore: number;
+  organicTraffic: number | null;
+  organicKeywords: number | null;
+  serpRank: number | null;
 }

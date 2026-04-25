@@ -77,7 +77,10 @@ function buildCompetitors(
     url: hit.url,
     rating: hit.rating ?? 0,
     reviewCount: hit.reviewCount ?? 0,
-    overallScore: hit.organicTraffic ?? 0,
+    overallScore: hit.serpRank ?? 99,
+    organicTraffic: hit.organicTraffic ?? null,
+    organicKeywords: hit.organicKeywords ?? null,
+    serpRank: hit.serpRank ?? null,
   }));
 
   return { competitors, userRank: competitors.length + 1 };

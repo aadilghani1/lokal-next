@@ -19,6 +19,8 @@ export interface CompetitorHit {
   reviewCount: number | null;
   organicTraffic?: number | null;
   organicKeywords?: number | null;
+  serpRank?: number | null;
+  serpAppearances?: number | null;
 }
 
 function getTavily() {
@@ -282,6 +284,8 @@ export async function searchCompetitors(
       reviewCount: null,
       organicTraffic: c.organic_traffic,
       organicKeywords: c.organic_keywords,
+      serpRank: c.best_rank,
+      serpAppearances: c.serp_appearances,
     }));
   } catch (err) {
     console.error("[competitors] Discovery failed:", err instanceof Error ? err.message : err);
