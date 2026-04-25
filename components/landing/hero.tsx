@@ -28,15 +28,12 @@ export function Hero() {
 
       <div className="relative z-10 mx-auto flex max-w-container flex-col items-center gap-8 px-4 pb-24 pt-16 text-center sm:pb-32 sm:pt-24 md:pb-40 md:pt-32">
         <div className="flex flex-col gap-5 max-w-2xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
-            Google Business Profile Audit
-          </p>
-          <h1 className="font-heading text-3xl font-light tracking-tight text-balance leading-[1.15] sm:text-4xl md:text-5xl">
+          <h1 className="font-heading text-3xl font-light tracking-tight text-balance leading-[1.15] text-foreground sm:text-4xl md:text-5xl">
             Know where you stand.
             <br />
-            <span className="text-muted-foreground">Then outrank them.</span>
+            <span className="text-foreground/70">Then <mark className="bg-primary/15 text-primary px-1 -mx-1 rounded-lg decoration-0">outrank them.</mark></span>
           </h1>
-          <p className="mx-auto max-w-md text-sm font-light text-muted-foreground/90 leading-relaxed text-balance sm:max-w-lg sm:text-[15px]">
+          <p className="mx-auto max-w-md text-sm font-light text-foreground/70 leading-relaxed text-balance sm:max-w-lg sm:text-[15px]">
             Paste your Google Business Profile link. Get an instant audit, see
             your top 5 competitors, and generate blog content to climb the
             local rankings.
