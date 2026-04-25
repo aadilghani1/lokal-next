@@ -1,4 +1,4 @@
-export type ArticleStatus = "generating" | "published" | "failed";
+export type ArticleStatus = "draft" | "generating" | "published" | "failed";
 
 export interface BlogArticle {
   id: string;

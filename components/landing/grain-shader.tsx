@@ -9,15 +9,15 @@ export function GrainShader({ className }: { className?: string }) {
         image="https://shaders.paper.design/images/logos/diamond.svg"
         style={{ width: "100%", height: "100%" }}
         colors={[
-          "#FFFBEB",
-          "#FEF3C7",
-          "#FDE68A",
-          "#FBBF24",
-          "#F59E0B",
-          "#D97706",
-          "#92400E",
+          "#FFF6ED",
+          "#E8C9A8",
+          "#FFF0E0",
+          "#D4A574",
+          "#FFE8D0",
+          "#C08E5E",
+          "#FFF3E6",
         ]}
-        colorBack="#FFFDF7"
+        colorBack="#FFFAF5"
         contour={0.35}
         angle={25}
         noise={0.15}

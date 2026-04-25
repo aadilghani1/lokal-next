@@ -1,26 +1,26 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, SpinnerGap, WarningCircle, CheckCircle } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, SpinnerGap, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 
 interface RankBetterCtaProps {
-  profileId: string;
+  gbpUrl: string;
 }
 
 interface GenerationResult {
-  jobId: string;
-  article: { slug: string; url: string };
+  article: { id: string };
 }
 
 type CtaState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "success"; data: GenerationResult }
   | { status: "error"; message: string };
 
-export function RankBetterCta({ profileId }: RankBetterCtaProps) {
+export function RankBetterCta({ gbpUrl }: RankBetterCtaProps) {
   const [state, setState] = useState<CtaState>({ status: "idle" });
+  const router = useRouter();
 
   async function handleClick() {
     setState({ status: "loading" });
@@ -28,7 +28,7 @@ export function RankBetterCta({ profileId }: RankBetterCtaProps) {
       const res = await fetch("/api/rank-better", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profileId, tenantSlug: "tenant1" }),
+        body: JSON.stringify({ gbpUrl, tenantSlug: "tenant1" }),
       });
 
       if (!res.ok) {
@@ -36,31 +36,14 @@ export function RankBetterCta({ profileId }: RankBetterCtaProps) {
         throw new Error(body?.error ?? `Request failed (${res.status})`);
       }
 
-      const data = await res.json();
-      setState({ status: "success", data });
+      const data: GenerationResult = await res.json();
+      router.push(`/dashboard/articles/${data.article.id}`);
     } catch (err) {
       setState({
         status: "error",
         message: err instanceof Error ? err.message : "Something went wrong",
       });
     }
-  }
-
-  if (state.status === "success") {
-    return (
-      <div className="flex items-center gap-3">
-        <a href={state.data.article.url}>
-          <Button variant="default" size="lg" className="gap-2">
-            <CheckCircle className="size-4" weight="bold" />
-            View Article
-            <ArrowRight className="size-4" weight="bold" />
-          </Button>
-        </a>
-        <span className="text-xs text-muted-foreground">
-          Generated &middot; {state.data.jobId.slice(0, 8)}
-        </span>
-      </div>
-    );
   }
 
   if (state.status === "error") {

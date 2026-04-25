@@ -9,7 +9,6 @@ export default function SettingsPage() {
           { label: "Dashboard", href: "/dashboard" },
           { label: "Settings" },
         ]}
-        title="Settings"
       />
       <div className="flex flex-1 flex-col gap-4 p-8">
         <div className="grid gap-4 md:grid-cols-2">

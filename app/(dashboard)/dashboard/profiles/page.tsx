@@ -10,7 +10,6 @@ export default function ProfilesPage() {
           { label: "Dashboard", href: "/dashboard" },
           { label: "Profiles" },
         ]}
-        title="Google Business Profiles"
       />
       <div className="flex flex-1 flex-col gap-4 p-8">
         <Card className="shadow-[var(--shadow-surface)]">

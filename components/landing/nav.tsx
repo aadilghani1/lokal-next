@@ -25,12 +25,6 @@ export function LandingNav() {
             Sign in
           </Button>
         </a>
-        <a href="/sign-up">
-          <Button size="sm" className="gap-1.5">
-            Get started
-            <ArrowRight className="size-3.5" weight="bold" />
-          </Button>
-        </a>
       </div>
     </nav>
   );

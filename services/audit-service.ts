@@ -21,7 +21,24 @@ const MOCK_COMPETITORS: Competitor[] = [
   { rank: 5, name: "Maple & Wheat", url: "https://maps.google.com/place/maple-wheat", rating: 4.3, reviewCount: 156, overallScore: 58 },
 ];
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function getMockAudit(profileId: string): ProfileAudit {
+  return {
+    id: crypto.randomUUID(),
+    profileId,
+    overallScore: 72,
+    categories: MOCK_CATEGORIES,
+    competitors: MOCK_COMPETITORS,
+    createdAt: new Date(),
+  };
+}
+
 export async function getAudit(profileId: string): Promise<ProfileAudit> {
+  if (!UUID_RE.test(profileId)) {
+    return getMockAudit(profileId);
+  }
+
   const [existing] = await db
     .select()
     .from(audits)
@@ -39,13 +56,5 @@ export async function getAudit(profileId: string): Promise<ProfileAudit> {
     };
   }
 
-  // Dev fallback: generate mock audit (does NOT insert -- profileId may not exist as FK)
-  return {
-    id: crypto.randomUUID(),
-    profileId,
-    overallScore: 72,
-    categories: MOCK_CATEGORIES,
-    competitors: MOCK_COMPETITORS,
-    createdAt: new Date(),
-  };
+  return getMockAudit(profileId);
 }

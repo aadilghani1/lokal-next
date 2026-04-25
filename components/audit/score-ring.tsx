@@ -8,16 +8,15 @@ interface ScoreRingProps {
 export function ScoreRing({
   score,
   maxScore = 100,
-  size = 140,
-  strokeWidth = 10,
+  size = 80,
+  strokeWidth = 6,
 }: ScoreRingProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const progress = (score / maxScore) * circumference;
-  const offset = circumference - progress;
+  const offset = circumference - (score / maxScore) * circumference;
 
   return (
-    <div className="relative" style={{ width: size, height: size }}>
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <circle
           cx={size / 2}
@@ -43,11 +42,8 @@ export function ScoreRing({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-4xl font-extrabold tracking-tight text-primary">
+        <span className="font-mono text-xl font-bold text-primary leading-none">
           {score}
-        </span>
-        <span className="text-xs font-medium text-muted-foreground">
-          / {maxScore}
         </span>
       </div>
     </div>

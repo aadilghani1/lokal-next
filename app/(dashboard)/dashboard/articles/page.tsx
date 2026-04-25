@@ -2,7 +2,7 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getAllArticles } from "@/services/article-service";
-import { FileText } from "@phosphor-icons/react/dist/ssr";
+import { FileText, ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 
 export default async function ArticlesPage() {
   const articles = await getAllArticles();
@@ -14,8 +14,6 @@ export default async function ArticlesPage() {
           { label: "Dashboard", href: "/dashboard" },
           { label: "Articles" },
         ]}
-        title="Generated Articles"
-        subtitle="Blog articles generated to improve your local search rankings."
       />
       <div className="flex flex-1 flex-col gap-4 p-8">
         {articles.length === 0 ? (
@@ -31,40 +29,42 @@ export default async function ArticlesPage() {
           </Card>
         ) : (
           <div className="flex flex-col gap-3">
-            {articles.map((article) => (
-              <a
-                key={article.id}
-                href={`/blog/${article.tenantSlug}/${article.slug}`}
-                className="group"
-              >
-                <Card className="shadow-[var(--shadow-surface)] transition-shadow hover:shadow-[var(--shadow-button-hover)]">
-                  <CardContent className="flex items-center justify-between py-4">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-sm font-medium group-hover:text-primary transition-colors">
-                        {article.title}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {article.tenantSlug}/{article.slug} &middot;{" "}
-                        {article.publishedAt
-                          ? new Date(article.publishedAt).toLocaleDateString()
-                          : "Draft"}
-                      </span>
-                    </div>
-                    <Badge
-                      variant={
-                        article.status === "published"
-                          ? "default"
-                          : article.status === "generating"
-                            ? "secondary"
-                            : "destructive"
-                      }
-                    >
-                      {article.status}
-                    </Badge>
-                  </CardContent>
-                </Card>
-              </a>
-            ))}
+            {articles.map((article) => {
+              const isPublished = article.status === "published";
+              return (
+                <a
+                  key={article.id}
+                  href={`/dashboard/articles/${article.id}`}
+                  className="group"
+                >
+                  <Card className="shadow-[var(--shadow-surface)] transition-shadow hover:shadow-[var(--shadow-button-hover)]">
+                    <CardContent className="flex items-center justify-between py-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm font-medium group-hover:text-primary transition-colors">
+                          {article.title}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {article.tenantSlug}/{article.slug}
+                          {article.publishedAt && (
+                            <> &middot; {new Date(article.publishedAt).toLocaleDateString()}</>
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={isPublished ? "default" : "secondary"}
+                        >
+                          {article.status}
+                        </Badge>
+                        {isPublished && (
+                          <ArrowSquareOut className="size-3.5 text-muted-foreground" weight="bold" />
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </a>
+              );
+            })}
           </div>
         )}
       </div>

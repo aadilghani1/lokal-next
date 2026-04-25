@@ -8,7 +8,6 @@ import type { BlogArticle } from "@/domains/article";
 interface CreateArticleParams {
   jobId: string;
   markdownContent: string;
-  profileId: string;
   tenantSlug: string;
   title: string;
 }
@@ -20,25 +19,7 @@ function slugify(text: string): string {
     .replace(/^-|-$/g, "");
 }
 
-export async function createArticle(
-  params: CreateArticleParams
-): Promise<BlogArticle> {
-  const slug = slugify(params.title);
-
-  const [row] = await db
-    .insert(articles)
-    .values({
-      jobId: params.jobId,
-      profileId: params.profileId || null,
-      tenantSlug: params.tenantSlug,
-      slug,
-      title: params.title,
-      markdownContent: params.markdownContent,
-      status: "published",
-      publishedAt: new Date(),
-    })
-    .returning();
-
+function rowToArticle(row: typeof articles.$inferSelect): BlogArticle {
   return {
     id: row.id,
     jobId: row.jobId,
@@ -51,6 +32,49 @@ export async function createArticle(
     createdAt: row.createdAt,
     publishedAt: row.publishedAt,
   };
+}
+
+export async function createArticle(
+  params: CreateArticleParams
+): Promise<BlogArticle> {
+  const slug = slugify(params.title);
+
+  const [row] = await db
+    .insert(articles)
+    .values({
+      jobId: params.jobId,
+      tenantSlug: params.tenantSlug,
+      slug,
+      title: params.title,
+      markdownContent: params.markdownContent,
+      status: "draft",
+    })
+    .returning();
+
+  return rowToArticle(row);
+}
+
+export async function getArticleById(
+  id: string
+): Promise<BlogArticle | null> {
+  const [row] = await db
+    .select()
+    .from(articles)
+    .where(eq(articles.id, id))
+    .limit(1);
+
+  return row ? rowToArticle(row) : null;
+}
+
+export async function publishArticle(id: string): Promise<BlogArticle> {
+  const [row] = await db
+    .update(articles)
+    .set({ status: "published", publishedAt: new Date() })
+    .where(eq(articles.id, id))
+    .returning();
+
+  if (!row) throw new Error("Article not found");
+  return rowToArticle(row);
 }
 
 export async function getArticle(
@@ -63,57 +87,10 @@ export async function getArticle(
     .where(and(eq(articles.tenantSlug, tenant), eq(articles.slug, slug)))
     .limit(1);
 
-  if (!row) return null;
-
-  return {
-    id: row.id,
-    jobId: row.jobId,
-    profileId: row.profileId ?? "",
-    tenantSlug: row.tenantSlug,
-    slug: row.slug,
-    title: row.title,
-    markdownContent: row.markdownContent,
-    status: row.status as BlogArticle["status"],
-    createdAt: row.createdAt,
-    publishedAt: row.publishedAt,
-  };
-}
-
-export async function getArticlesByProfile(
-  profileId: string
-): Promise<BlogArticle[]> {
-  const rows = await db
-    .select()
-    .from(articles)
-    .where(eq(articles.profileId, profileId));
-
-  return rows.map((row) => ({
-    id: row.id,
-    jobId: row.jobId,
-    profileId: row.profileId ?? "",
-    tenantSlug: row.tenantSlug,
-    slug: row.slug,
-    title: row.title,
-    markdownContent: row.markdownContent,
-    status: row.status as BlogArticle["status"],
-    createdAt: row.createdAt,
-    publishedAt: row.publishedAt,
-  }));
+  return row ? rowToArticle(row) : null;
 }
 
 export async function getAllArticles(): Promise<BlogArticle[]> {
   const rows = await db.select().from(articles);
-
-  return rows.map((row) => ({
-    id: row.id,
-    jobId: row.jobId,
-    profileId: row.profileId ?? "",
-    tenantSlug: row.tenantSlug,
-    slug: row.slug,
-    title: row.title,
-    markdownContent: row.markdownContent,
-    status: row.status as BlogArticle["status"],
-    createdAt: row.createdAt,
-    publishedAt: row.publishedAt,
-  }));
+  return rows.map(rowToArticle);
 }

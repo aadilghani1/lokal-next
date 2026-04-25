@@ -54,7 +54,7 @@ export const articles = pgTable(
     slug: text("slug").notNull(),
     title: text("title").notNull(),
     markdownContent: text("markdown_content").notNull(),
-    status: text("status", { enum: ["generating", "published", "failed"] })
+    status: text("status", { enum: ["draft", "generating", "published", "failed"] })
       .notNull()
       .default("generating"),
     createdAt: timestamp("created_at").defaultNow().notNull(),

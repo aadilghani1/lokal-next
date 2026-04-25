@@ -19,7 +19,7 @@ export function CompetitorTable({
   userRank = 3,
 }: CompetitorTableProps) {
   return (
-    <div className="rounded-xl shadow-[var(--shadow-surface)] overflow-hidden">
+    <div className="overflow-hidden -mx-6 -mb-6">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">

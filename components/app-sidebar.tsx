@@ -36,7 +36,7 @@ const navMain = [
       },
       {
         title: "Audit",
-        url: "/dashboard/audit/demo",
+        url: "/dashboard/audit",
         icon: MagnifyingGlass,
       },
       {
@@ -68,7 +68,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             Lokal
           </span>
         </Link>
-        <SearchForm />
       </SidebarHeader>
       <SidebarContent>
         {navMain.map((group) => (

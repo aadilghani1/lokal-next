@@ -6,21 +6,21 @@ const steps = [
     icon: MagnifyingGlass,
     title: "Audit",
     description:
-      "Paste your Google Business Profile URL. We score your listing across reviews, photos, posts, completeness, and keywords.",
+      "Paste your profile link. Get scored on reviews, posts, and keywords.",
   },
   {
     number: "02",
     icon: ChartBar,
     title: "Compare",
     description:
-      "See exactly where you rank against your top 5 local competitors. No guesswork, just data.",
+      "See how you stack up against your top 5 local competitors.",
   },
   {
     number: "03",
     icon: PencilLine,
     title: "Rank",
     description:
-      "One click generates SEO-optimized blog articles tailored to your business and location. Published instantly.",
+      "Generate and publish SEO blog posts for your business in one click.",
   },
 ] as const;
 

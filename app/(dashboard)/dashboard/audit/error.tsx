@@ -17,23 +17,19 @@ export default function AuditError({ error, reset }: ErrorProps) {
 
   return (
     <div className="flex flex-1 items-center justify-center p-8">
-      <Card className="max-w-md w-full">
+      <Card className="max-w-md w-full shadow-[var(--shadow-surface)]">
         <CardContent className="flex flex-col items-center gap-4 py-10">
           <WarningCircle className="size-10 text-destructive" weight="duotone" />
-          <h2 className="font-heading text-lg font-semibold">
-            Audit failed
-          </h2>
+          <h2 className="font-heading text-lg font-medium">Audit failed</h2>
           <p className="text-sm text-muted-foreground text-center">
-            {error.message || "We couldn't load the audit data. The profile may not exist or the service is temporarily unavailable."}
+            {error.message || "We couldn't load the audit data. Please try again."}
           </p>
           <div className="flex gap-2">
             <Button onClick={reset} variant="outline" size="sm">
               Retry
             </Button>
             <a href="/dashboard">
-              <Button variant="ghost" size="sm">
-                Back to dashboard
-              </Button>
+              <Button variant="ghost" size="sm">Back to dashboard</Button>
             </a>
           </div>
         </CardContent>

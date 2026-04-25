@@ -16,7 +16,7 @@ export function Hero() {
     e.preventDefault();
     const encoded = encodeURIComponent(url);
     router.push(
-      `/sign-up?redirect_url=/dashboard/audit/demo&gbp_url=${encoded}`
+      `/sign-up?redirect_url=${encodeURIComponent(`/dashboard/audit?url=${encoded}`)}`
     );
   }
 
@@ -62,7 +62,7 @@ export function Hero() {
         </form>
 
         <p className="text-[11px] font-light text-muted-foreground/50 tracking-wide">
-          Free audit &middot; No credit card &middot; Takes 10 seconds
+          Free audit &middot; Takes 10 seconds
         </p>
       </div>
     </section>
