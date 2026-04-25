@@ -39,6 +39,7 @@ export async function POST(request: Request) {
     if (businessLocation) analyzeBody.business_location = businessLocation;
     if (competitorUrls && competitorUrls.length > 0) {
       analyzeBody.competitor_urls = competitorUrls;
+      analyzeBody.skip_domain_enrichment = true;
     }
 
     if (!analyzeBody.business_name) {
