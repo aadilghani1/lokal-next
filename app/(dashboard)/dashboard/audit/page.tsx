@@ -4,7 +4,6 @@ import { CategoryBar } from "@/components/audit/category-bar";
 import { CompetitorTable } from "@/components/audit/competitor-table";
 import { RankBetterCta } from "@/components/audit/rank-better-cta";
 import { getAudit } from "@/services/audit-service";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
@@ -15,7 +14,7 @@ export default async function AuditPage({
 }) {
   const { url } = await searchParams;
   const audit = await getAudit(url ?? "demo");
-  const userCompetitor = audit.competitors.find((c) => c.rank === 3);
+  const businessName = audit.business?.name ?? "Your Business";
 
   return (
     <>
@@ -30,14 +29,13 @@ export default async function AuditPage({
         <div className="flex items-center gap-6">
           <ScoreRing score={audit.overallScore} />
           <Separator orientation="vertical" className="h-10" />
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary" className="bg-primary/10 text-primary">
-              {userCompetitor?.rating ?? "4.6"} ★
-            </Badge>
-            <Badge variant="secondary">
-              {userCompetitor?.reviewCount ?? 248} reviews
-            </Badge>
-            <Badge variant="secondary">Bakery</Badge>
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-medium">{businessName}</span>
+            {audit.business?.description && (
+              <span className="text-xs text-muted-foreground max-w-md truncate">
+                {audit.business.description}
+              </span>
+            )}
           </div>
         </div>
 
@@ -59,13 +57,13 @@ export default async function AuditPage({
                 Competitors
               </CardTitle>
               <span className="text-[11px] text-muted-foreground font-normal">
-                Local visibility rank
+                {audit.business ? "Local visibility rank" : "Demo data"}
               </span>
             </CardHeader>
             <CardContent>
               <CompetitorTable
                 competitors={audit.competitors}
-                userRank={3}
+                userRank={audit.userRank}
               />
             </CardContent>
           </Card>
