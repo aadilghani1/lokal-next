@@ -25,8 +25,13 @@ export const profiles = pgTable("profiles", {
     .references(() => users.id),
   url: text("url").notNull(),
   name: text("name"),
+  category: text("category"),
+  location: text("location"),
   placeId: text("place_id"),
+  rating: integer("rating"),
+  reviewCount: integer("review_count"),
   tenantSlug: text("tenant_slug").unique(),
+  competitorUrls: jsonb("competitor_urls"),
   status: text("status", { enum: ["pending", "active", "error"] })
     .notNull()
     .default("pending"),

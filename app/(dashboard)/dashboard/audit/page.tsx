@@ -4,16 +4,10 @@ import { CategoryBar } from "@/components/audit/category-bar";
 import { CompetitorTable } from "@/components/audit/competitor-table";
 import { RankBetterCta } from "@/components/audit/rank-better-cta";
 import { getAudit } from "@/services/audit-service";
+import { getCurrentUser } from "@/services/user-service";
+import { findOrCreateProfile, saveAudit } from "@/services/profile-service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-
-function slugifyTenant(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 50);
-}
 
 export default async function AuditPage({
   searchParams,
@@ -22,10 +16,47 @@ export default async function AuditPage({
 }) {
   const { url } = await searchParams;
   const audit = await getAudit(url ?? "demo");
+
+  // Persist profile + audit if we have real data
+  let profileId: string | null = null;
+  let tenantSlug = "demo";
+
+  if (audit.business && url && url !== "demo") {
+    try {
+      const user = await getCurrentUser();
+      if (user) {
+        const competitorUrls = audit.competitors
+          .filter((c) => c.url && c.url !== "#")
+          .map((c) => c.url);
+
+        const profile = await findOrCreateProfile(user.id, url, {
+          name: audit.business.name,
+          category: audit.business.category,
+          location: audit.business.location,
+          rating: audit.business.rating ?? undefined,
+          reviewCount: audit.business.reviewCount ?? undefined,
+          competitorUrls,
+        });
+
+        profileId = profile.id;
+        tenantSlug = profile.tenantSlug;
+
+        await saveAudit(
+          profile.id,
+          audit.overallScore,
+          audit.categories,
+          audit.competitors
+        );
+      }
+    } catch (err) {
+      console.error("[audit] Failed to persist profile:", err);
+      tenantSlug = audit.business.name
+        ? audit.business.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50) || "business"
+        : "demo";
+    }
+  }
+
   const businessName = audit.business?.name ?? "Your Business";
-  const tenantSlug = audit.business?.name
-    ? slugifyTenant(audit.business.name) || "business"
-    : "demo";
 
   return (
     <>
@@ -68,7 +99,7 @@ export default async function AuditPage({
                 Competitors
               </CardTitle>
               <span className="text-[11px] text-muted-foreground font-normal">
-                {audit.business ? "Local visibility rank" : "Demo data"}
+                {audit.business ? "SERP visibility rank" : "No data"}
               </span>
             </CardHeader>
             <CardContent>
@@ -85,6 +116,7 @@ export default async function AuditPage({
         <RankBetterCta
           gbpUrl={url ?? ""}
           tenantSlug={tenantSlug}
+          profileId={profileId ?? undefined}
           competitorUrls={audit.competitors
             .filter((c) => c.url && c.url !== "#")
             .map((c) => c.url)}

@@ -12,6 +12,7 @@ export type CreateArticleInput = z.infer<typeof createArticleSchema>;
 export const rankBetterRequestSchema = z.object({
   gbpUrl: z.string().min(1),
   tenantSlug: z.string().max(50).regex(/^[a-z0-9-]*$/).default("business"),
+  profileId: z.string().optional(),
   competitorUrls: z.array(z.string()).optional(),
   businessName: z.string().optional(),
   businessCategory: z.string().optional(),

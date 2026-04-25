@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { gbpUrl, tenantSlug, competitorUrls, businessName, businessCategory, businessLocation } = parsed.data;
+  const { gbpUrl, tenantSlug, profileId, competitorUrls, businessName, businessCategory, businessLocation } = parsed.data;
 
   try {
     const analyzeBody: Record<string, unknown> = {};
@@ -79,6 +79,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       jobId: startData.job_id,
       tenantSlug,
+      profileId,
       businessName: (analyzeBody.business_name as string) ?? "Your Business",
     });
   } catch (err) {

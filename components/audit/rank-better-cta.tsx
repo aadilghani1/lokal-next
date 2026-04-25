@@ -8,6 +8,7 @@ import { ArrowRight, SpinnerGap, WarningCircle } from "@phosphor-icons/react/dis
 interface RankBetterCtaProps {
   gbpUrl: string;
   tenantSlug: string;
+  profileId?: string;
   competitorUrls?: string[];
   businessName?: string;
   businessCategory?: string;
@@ -19,7 +20,7 @@ type CtaState =
   | { status: "loading" }
   | { status: "error"; message: string };
 
-export function RankBetterCta({ gbpUrl, tenantSlug, competitorUrls, businessName, businessCategory, businessLocation }: RankBetterCtaProps) {
+export function RankBetterCta({ gbpUrl, tenantSlug, profileId, competitorUrls, businessName, businessCategory, businessLocation }: RankBetterCtaProps) {
   const [state, setState] = useState<CtaState>({ status: "idle" });
   const router = useRouter();
 
@@ -29,7 +30,7 @@ export function RankBetterCta({ gbpUrl, tenantSlug, competitorUrls, businessName
       const res = await fetch("/api/rank-better", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gbpUrl, tenantSlug, competitorUrls, businessName, businessCategory, businessLocation }),
+        body: JSON.stringify({ gbpUrl, tenantSlug, profileId, competitorUrls, businessName, businessCategory, businessLocation }),
       });
 
       if (!res.ok) {

@@ -22,6 +22,13 @@
       "when": 1777148621963,
       "tag": "0002_sharp_beyonder",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1777149913792,
+      "tag": "0003_even_sage",
+      "breakpoints": true
     }
   ]
 }
