@@ -1,7 +1,13 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { DashboardHeader } from "@/components/dashboard-header";
-import { getContentJobByJobId, getArticlesByJobId } from "@/services/article-service";
+import {
+  getContentJobByJobId,
+  getArticlesByJobId,
+  completeContentJob,
+  createArticle,
+  createContentJob,
+} from "@/services/article-service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -20,15 +26,83 @@ import {
   Article as ArticleIcon,
 } from "@phosphor-icons/react/dist/ssr";
 
+const CONTENT_GEN_URL = process.env.CONTENT_GEN_URL ?? "https://content-gen.openhook.dev";
+const CONTENT_GEN_TOKEN = process.env.CONTENT_GEN_TOKEN ?? "";
+
+async function ensureDataFromBackend(jobId: string, tenantSlug: string) {
+  const headers: Record<string, string> = {};
+  if (CONTENT_GEN_TOKEN) headers["Authorization"] = `Bearer ${CONTENT_GEN_TOKEN}`;
+
+  const res = await fetch(`${CONTENT_GEN_URL}/api/v1/analyze/${jobId}`, { headers });
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  if (data.status !== "completed" || !data.content) return null;
+
+  // Ensure content job exists
+  let contentJob = await getContentJobByJobId(jobId);
+  if (!contentJob) {
+    contentJob = await createContentJob({
+      jobId,
+      tenantSlug,
+      businessName: data.business?.name,
+      businessCategory: data.business?.category,
+      businessLocation: data.business?.location,
+    });
+  }
+
+  if (contentJob.status !== "completed") {
+    contentJob = await completeContentJob(jobId, {
+      competitors: data.competitors ?? [],
+      topicClusters: data.topic_clusters ?? [],
+      totalKeywordsFound: data.total_keywords_found ?? 0,
+      totalClusters: data.total_clusters ?? 0,
+      agentToolCalls: data.content.tool_calls ?? [],
+      agentInputTokens: data.content.total_input_tokens ?? 0,
+      agentOutputTokens: data.content.total_output_tokens ?? 0,
+    });
+  }
+
+  // Create articles if none exist
+  const existing = await getArticlesByJobId(jobId);
+  if (existing.length === 0 && data.content.articles?.length > 0) {
+    for (const ba of data.content.articles) {
+      await createArticle({
+        jobId,
+        contentJobId: contentJob.id,
+        tenantSlug,
+        title: ba.meta_title || ba.target_keyword || "SEO Article",
+        markdownContent: ba.article_markdown,
+        clusterKeywords: [ba.target_keyword, ...(ba.supporting_keywords ?? [])],
+        schemaJsonld: ba.schema_jsonld,
+      });
+    }
+  }
+
+  return contentJob;
+}
+
 export default async function ResultsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ jobId: string }>;
+  searchParams: Promise<{ tenantSlug?: string }>;
 }) {
   const { jobId } = await params;
-  const contentJob = await getContentJobByJobId(jobId);
+  const { tenantSlug = "default" } = await searchParams;
 
-  if (!contentJob) notFound();
+  let contentJob = await getContentJobByJobId(jobId);
+
+  // If content job is missing or incomplete, hydrate from backend
+  if (!contentJob || contentJob.status !== "completed") {
+    const hydrated = await ensureDataFromBackend(jobId, tenantSlug);
+    if (hydrated) {
+      contentJob = hydrated;
+    } else if (!contentJob) {
+      notFound();
+    }
+  }
 
   const articles = await getArticlesByJobId(jobId);
 
