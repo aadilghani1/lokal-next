@@ -13,6 +13,8 @@ interface RankBetterCtaProps {
   businessName?: string;
   businessCategory?: string;
   businessLocation?: string;
+  businessRating?: number;
+  businessReviewCount?: number;
 }
 
 type CtaState =
@@ -20,7 +22,7 @@ type CtaState =
   | { status: "loading" }
   | { status: "error"; message: string };
 
-export function RankBetterCta({ gbpUrl, tenantSlug, profileId, competitorUrls, businessName, businessCategory, businessLocation }: RankBetterCtaProps) {
+export function RankBetterCta({ gbpUrl, tenantSlug, profileId, competitorUrls, businessName, businessCategory, businessLocation, businessRating, businessReviewCount }: RankBetterCtaProps) {
   const [state, setState] = useState<CtaState>({ status: "idle" });
   const router = useRouter();
 
@@ -30,7 +32,7 @@ export function RankBetterCta({ gbpUrl, tenantSlug, profileId, competitorUrls, b
       const res = await fetch("/api/rank-better", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gbpUrl, tenantSlug, profileId, competitorUrls, businessName, businessCategory, businessLocation }),
+        body: JSON.stringify({ gbpUrl, tenantSlug, profileId, competitorUrls, businessName, businessCategory, businessLocation, businessRating, businessReviewCount }),
       });
 
       if (!res.ok) {

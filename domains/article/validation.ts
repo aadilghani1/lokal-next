@@ -17,6 +17,8 @@ export const rankBetterRequestSchema = z.object({
   businessName: z.string().optional(),
   businessCategory: z.string().optional(),
   businessLocation: z.string().optional(),
+  businessRating: z.number().optional(),
+  businessReviewCount: z.number().optional(),
 });
 
 export type RankBetterRequest = z.infer<typeof rankBetterRequestSchema>;

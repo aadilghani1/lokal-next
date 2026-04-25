@@ -147,6 +147,8 @@ export default async function AuditPage({
           businessName={audit.business?.name}
           businessCategory={audit.business?.category}
           businessLocation={audit.business?.location}
+          businessRating={audit.business?.rating ?? undefined}
+          businessReviewCount={audit.business?.reviewCount ?? undefined}
         />
       </div>
     </>

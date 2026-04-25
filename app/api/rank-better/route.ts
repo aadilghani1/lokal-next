@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { gbpUrl, tenantSlug, profileId, competitorUrls, businessName, businessCategory, businessLocation } = parsed.data;
+  const { gbpUrl, tenantSlug, profileId, competitorUrls, businessName, businessCategory, businessLocation, businessRating, businessReviewCount } = parsed.data;
 
   try {
     const analyzeBody: Record<string, unknown> = {};
@@ -37,6 +37,8 @@ export async function POST(request: Request) {
     if (businessName) analyzeBody.business_name = businessName;
     if (businessCategory) analyzeBody.business_category = businessCategory;
     if (businessLocation) analyzeBody.business_location = businessLocation;
+    if (businessRating) analyzeBody.business_rating = businessRating;
+    if (businessReviewCount) analyzeBody.business_review_count = businessReviewCount;
     if (competitorUrls && competitorUrls.length > 0) {
       analyzeBody.competitor_urls = competitorUrls;
       analyzeBody.skip_domain_enrichment = true;
