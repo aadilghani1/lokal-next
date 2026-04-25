@@ -57,16 +57,32 @@ export default function GeneratingPage() {
   // Merge: hydrated (from DB) + live SSE events
   const allEvents = [...hydratedEvents, ...sseEvents];
 
-  // Redirect on complete
+  // On SSE complete: trigger the poll handler to create articles, then redirect
   useEffect(() => {
-    if (status === "complete") {
-      const timer = setTimeout(() => {
+    if (status !== "complete" || !jobId) return;
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/rank-better/${jobId}?tenantSlug=${encodeURIComponent(tenantSlug)}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data.articlesCreated) {
+            router.push(
+              `/dashboard/results/${jobId}?tenantSlug=${encodeURIComponent(tenantSlug)}`
+            );
+            return;
+          }
+        }
+      } catch {}
+      // Fallback redirect even if article creation failed
+      setTimeout(() => {
         router.push(
           `/dashboard/results/${jobId}?tenantSlug=${encodeURIComponent(tenantSlug)}`
         );
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
+      }, 2000);
+    })();
   }, [status, jobId, tenantSlug, router]);
 
   // Poll fallback if SSE fails completely
