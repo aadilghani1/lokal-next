@@ -1,9 +1,8 @@
 import { DashboardHeader } from "@/components/dashboard-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { getAllArticles } from "@/services/article-service";
-import { MagnifyingGlass, ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import { AuditUrlForm } from "@/components/dashboard/audit-url-form";
 
 export default async function DashboardOverviewPage() {
   const articles = await getAllArticles();
@@ -13,27 +12,7 @@ export default async function DashboardOverviewPage() {
     <>
       <DashboardHeader segments={[{ label: "Overview" }]} />
       <div className="flex flex-1 flex-col gap-6 p-8">
-        <Card className="shadow-[var(--shadow-surface)]">
-          <CardContent className="flex items-center justify-between py-6">
-            <div className="flex items-center gap-4">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/8">
-                <MagnifyingGlass className="size-5 text-primary" weight="duotone" />
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium">Run an audit</span>
-                <span className="text-xs text-muted-foreground">
-                  Paste a Google Business Profile URL to get started.
-                </span>
-              </div>
-            </div>
-            <a href="/dashboard/audit">
-              <Button size="sm" className="gap-1.5">
-                Start
-                <ArrowRight className="size-3.5" weight="bold" />
-              </Button>
-            </a>
-          </CardContent>
-        </Card>
+        <AuditUrlForm />
 
         {recent.length > 0 && (
           <div className="flex flex-col gap-3">

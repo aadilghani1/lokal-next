@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
@@ -11,13 +12,17 @@ import { GrainShader } from "./grain-shader";
 export function Hero() {
   const [url, setUrl] = useState("");
   const router = useRouter();
+  const { isSignedIn } = useAuth();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const encoded = encodeURIComponent(url);
-    router.push(
-      `/sign-up?redirect_url=${encodeURIComponent(`/dashboard/audit?url=${encoded}`)}`
-    );
+    const auditUrl = `/dashboard/audit?url=${encodeURIComponent(url)}`;
+
+    if (isSignedIn) {
+      router.push(auditUrl);
+    } else {
+      router.push(`/sign-up?redirect_url=${encodeURIComponent(auditUrl)}`);
+    }
   }
 
   return (
