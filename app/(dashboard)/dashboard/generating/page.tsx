@@ -13,7 +13,6 @@ import { ArticlePreviewPanel } from "@/components/generating/article-preview";
 import {
   useEventStream,
   type SSEEvent,
-  type StreamStatus,
 } from "@/hooks/use-event-stream";
 
 const POLL_INTERVAL = 3000;
@@ -209,17 +208,16 @@ export default function GeneratingPage() {
         ]}
       />
 
-      <ProgressHeader
+        <ProgressHeader
         businessName={businessName}
         status={status}
-        pollFallback={pollFallback}
         completedPhases={completedCount}
         totalPhases={PHASES.length}
         activePhaseLabel={activePhaseLabel}
       />
 
       <div className="flex flex-1 overflow-hidden">
-        <div className="flex-[3] overflow-y-auto border-r border-border/50 px-8 py-8 lg:px-12">
+        <div className="flex-3 overflow-y-auto border-r border-border/50 px-8 py-8 lg:px-12">
           <PhaseTimeline
             events={allEvents}
             statuses={phaseStatuses}
@@ -227,7 +225,7 @@ export default function GeneratingPage() {
           />
         </div>
 
-        <div className="flex-[2] overflow-y-auto px-8 py-8 lg:px-10">
+        <div className="flex-2 overflow-y-auto px-8 py-8 lg:px-10">
           <ArticlePreviewPanel events={allEvents} isComplete={isComplete} />
         </div>
       </div>

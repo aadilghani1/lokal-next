@@ -7,7 +7,6 @@ import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
 interface ProgressHeaderProps {
   businessName: string;
   status: StreamStatus;
-  pollFallback: boolean;
   completedPhases: number;
   totalPhases: number;
   activePhaseLabel: string | null;
@@ -16,7 +15,6 @@ interface ProgressHeaderProps {
 export function ProgressHeader({
   businessName,
   status,
-  pollFallback,
   completedPhases,
   totalPhases,
   activePhaseLabel,
