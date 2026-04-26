@@ -54,8 +54,20 @@ export default function GeneratingPage() {
     })();
   }, [jobId, tenantSlug, router]);
 
-  // Merge: hydrated (from DB) + live SSE events
-  const allEvents = [...hydratedEvents, ...sseEvents];
+  // Merge: hydrated (from DB) + live SSE events, deduplicate stages
+  const seenStages = new Set(hydratedEvents
+    .filter((e) => e.event === "stage")
+    .map((e) => (e as { event: "stage"; data: { stage: string } }).data.stage));
+
+  const deduped = sseEvents.filter((e) => {
+    if (e.event !== "stage") return true;
+    const stage = (e as { event: "stage"; data: { stage: string } }).data.stage;
+    if (seenStages.has(stage)) return false;
+    seenStages.add(stage);
+    return true;
+  });
+
+  const allEvents = [...hydratedEvents, ...deduped];
 
   // On SSE complete: trigger the poll handler to create articles, then redirect
   useEffect(() => {
