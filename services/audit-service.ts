@@ -18,6 +18,8 @@ export type AuditResult = ProfileAudit & {
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
+const inflight = new Map<string, Promise<AuditResult>>();
+
 export async function getOrCreateAudit(gbpUrl: string): Promise<AuditResult> {
   if (gbpUrl && gbpUrl !== "demo") {
     try {
@@ -74,7 +76,15 @@ export async function getOrCreateAudit(gbpUrl: string): Promise<AuditResult> {
     }
   }
 
-  return computeAudit(gbpUrl);
+  const existing = inflight.get(gbpUrl);
+  if (existing) {
+    console.log("[audit] Dedup: joining in-flight request for:", gbpUrl.slice(0, 60));
+    return existing;
+  }
+
+  const promise = computeAudit(gbpUrl).finally(() => inflight.delete(gbpUrl));
+  inflight.set(gbpUrl, promise);
+  return promise;
 }
 
 export async function computeAudit(gbpUrl: string): Promise<AuditResult> {

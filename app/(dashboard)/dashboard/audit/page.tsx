@@ -5,6 +5,7 @@ import { buildAuditContext } from "@/domains/audit/context";
 import { AuditView } from "@/components/audit/audit-view";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { AuditUrlForm } from "@/components/dashboard/audit-url-form";
+import { getCurrentUser } from "@/services/user-service";
 
 export default async function AuditPage({
   searchParams,
@@ -38,10 +39,13 @@ export default async function AuditPage({
     );
   }
 
-  const audit = await getOrCreateAudit(url);
+  const [audit, user] = await Promise.all([
+    getOrCreateAudit(url),
+    getCurrentUser().catch(() => null),
+  ]);
   const context = buildAuditContext(audit, url);
 
-  after(() => persistAuditResult(audit, url));
+  after(() => persistAuditResult(audit, url, user));
 
   return <AuditView audit={audit} context={context} />;
 }

@@ -2,20 +2,20 @@
 
 import type { AuditResult } from "@/services/audit-service";
 import type { AuditContext } from "@/domains/audit";
+import type { User } from "@/domains/user";
 import { buildAuditContext } from "@/domains/audit/context";
-import { getCurrentUser } from "@/services/user-service";
 import { findOrCreateProfile, saveAudit } from "@/services/profile-service";
 
 export async function persistAuditResult(
   audit: AuditResult,
   gbpUrl: string,
+  user?: User | null,
 ): Promise<AuditContext> {
   if (!audit.business || gbpUrl === "demo") {
     return buildAuditContext(audit, gbpUrl, null, "demo");
   }
 
   try {
-    const user = await getCurrentUser();
     if (!user) {
       return buildAuditContext(audit, gbpUrl);
     }
