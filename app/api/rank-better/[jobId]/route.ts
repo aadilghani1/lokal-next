@@ -27,6 +27,7 @@ interface BackendArticle {
   competitive_angle: string;
   article_markdown: string;
   schema_jsonld?: Record<string, unknown>[];
+  embedding?: number[];
 }
 
 export async function GET(
@@ -108,6 +109,7 @@ export async function GET(
             searchVolume: undefined,
             keywordDifficulty: undefined,
             schemaJsonld: ba.schema_jsonld,
+            embedding: ba.embedding,
           });
           createdArticles.push({
             id: article.id,

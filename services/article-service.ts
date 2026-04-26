@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { articles, contentJobs } from "@/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import type { BlogArticle, ContentJob } from "@/domains/article";
 
 function slugify(text: string): string {
@@ -131,6 +131,7 @@ export async function createArticle(input: {
   searchVolume?: number;
   keywordDifficulty?: number;
   schemaJsonld?: unknown[];
+  embedding?: number[];
 }): Promise<BlogArticle> {
   const slug = slugify(input.title);
 
@@ -163,6 +164,14 @@ export async function createArticle(input: {
       },
     })
     .returning();
+
+  // Store embedding via raw SQL (drizzle doesn't support vector type)
+  if (input.embedding && input.embedding.length > 0) {
+    const vectorStr = `[${input.embedding.join(",")}]`;
+    await db.execute(
+      sql`UPDATE articles SET embedding = ${vectorStr}::vector WHERE id = ${row.id}`
+    );
+  }
 
   return rowToArticle(row);
 }
@@ -228,4 +237,30 @@ export async function getArticlesByJobId(jobId: string): Promise<BlogArticle[]> 
 export async function getAllArticles(): Promise<BlogArticle[]> {
   const rows = await db.select().from(articles).orderBy(desc(articles.createdAt));
   return rows.map(rowToArticle);
+}
+
+export async function getSimilarArticles(
+  articleId: string,
+  limit: number = 3
+): Promise<{ id: string; title: string; tenantSlug: string; slug: string; similarity: number }[]> {
+  const rows = await db.execute(sql`
+    SELECT
+      b.id, b.title, b.tenant_slug, b.slug,
+      1 - (a.embedding <=> b.embedding) as similarity
+    FROM articles a, articles b
+    WHERE a.id = ${articleId}
+      AND b.id != ${articleId}
+      AND a.embedding IS NOT NULL
+      AND b.embedding IS NOT NULL
+    ORDER BY a.embedding <=> b.embedding
+    LIMIT ${limit}
+  `);
+
+  return (rows.rows as { id: string; title: string; tenant_slug: string; slug: string; similarity: number }[]).map((r) => ({
+    id: r.id,
+    title: r.title,
+    tenantSlug: r.tenant_slug,
+    slug: r.slug,
+    similarity: Math.round(r.similarity * 100) / 100,
+  }));
 }

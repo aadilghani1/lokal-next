@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { getArticle } from "@/services/article-service";
+import Link from "next/link";
+import { getArticle, getSimilarArticles } from "@/services/article-service";
 import { getProfileBySlug } from "@/services/profile-service";
 import { markdownToHtml } from "@/lib/markdown";
 import { ArticleRenderer } from "@/components/blog/article-renderer";
@@ -110,7 +111,38 @@ export default async function BlogArticlePage({
             ))}
           </div>
         )}
+        {/* Related Articles via pgvector similarity */}
+        <RelatedArticles articleId={article.id} tenant={tenant} />
       </main>
     </>
+  );
+}
+
+async function RelatedArticles({ articleId, tenant }: { articleId: string; tenant: string }) {
+  let similar: { id: string; title: string; tenantSlug: string; slug: string; similarity: number }[] = [];
+  try {
+    similar = await getSimilarArticles(articleId, 3);
+  } catch {}
+
+  if (similar.length === 0) return null;
+
+  return (
+    <div className="mt-16 pt-10 border-t border-border">
+      <h3 className="font-heading text-lg font-semibold mb-4">Related Articles</h3>
+      <div className="grid gap-3">
+        {similar.map((s) => (
+          <Link
+            key={s.id}
+            href={`/blog/${s.tenantSlug}/${s.slug}`}
+            className="block rounded-lg border border-border/50 px-4 py-3 hover:bg-muted/30 transition-colors"
+          >
+            <p className="text-sm font-medium">{s.title}</p>
+            <p className="text-[11px] text-muted-foreground/50 mt-0.5 font-mono">
+              {Math.round(s.similarity * 100)}% similar
+            </p>
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }
