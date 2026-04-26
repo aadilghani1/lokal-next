@@ -15,6 +15,7 @@ const isPublicRoute = createRouteMatcher([
   "/llms-full.txt",
 ]);
 
+
 const TENANT_SEO_ROUTES: Record<string, (tenant: string) => string> = {
   "/sitemap.xml": (t) => `/blog/${t}/sitemap.xml`,
   "/robots.txt": (t) => `/blog/${t}/robots.txt`,
