@@ -367,23 +367,20 @@ export const CodeBlockContent = ({
     [code, language, rawTokens]
   );
 
-  const [asyncTokens, setAsyncTokens] = useState<TokenizedCode | null>(null);
-  const asyncKeyRef = useRef({ code, language });
+  const [asyncState, setAsyncState] = useState<{
+    key: string;
+    tokens: TokenizedCode | null;
+  }>({ key: `${code}:${language}`, tokens: null });
 
-  if (
-    asyncKeyRef.current.code !== code ||
-    asyncKeyRef.current.language !== language
-  ) {
-    asyncKeyRef.current = { code, language };
-    setAsyncTokens(null);
-  }
+  const currentKey = `${code}:${language}`;
+  const asyncTokens = asyncState.key === currentKey ? asyncState.tokens : null;
 
   useEffect(() => {
     let cancelled = false;
 
     highlightCode(code, language, (result) => {
       if (!cancelled) {
-        setAsyncTokens(result);
+        setAsyncState({ key: `${code}:${language}`, tokens: result });
       }
     });
 
