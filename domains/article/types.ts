@@ -1,4 +1,5 @@
 export type ArticleStatus = "draft" | "generating" | "published" | "failed";
+export type ContentJobStatus = "processing" | "completed" | "failed";
 
 export interface BlogArticle {
   id: string;
@@ -29,7 +30,7 @@ export interface ContentJob {
   topicClusters: TopicClusterResult[];
   totalKeywordsFound: number;
   totalClusters: number;
-  status: string;
+  status: ContentJobStatus;
   createdAt: Date;
 }
 
@@ -52,4 +53,21 @@ export interface TopicClusterResult {
   avg_cpc: number;
   competitor_coverage: Record<string, number>;
   opportunity_score: number;
+}
+
+export interface BackendResponse {
+  status: string;
+  business?: { name?: string; category?: string; location?: string };
+  competitors?: Record<string, unknown>[];
+  topic_clusters?: Record<string, unknown>[];
+  total_keywords_found?: number;
+  total_clusters?: number;
+  progress?: { stages?: { stage: string; detail: string | null }[] };
+  content?: {
+    articles?: Record<string, unknown>[];
+    full_response?: string;
+    tool_calls?: Record<string, unknown>[];
+    total_input_tokens?: number;
+    total_output_tokens?: number;
+  };
 }

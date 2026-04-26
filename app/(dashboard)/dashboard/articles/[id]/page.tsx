@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PublishButton } from "./publish-button";
 import { ArrowSquareOut, LinkSimple } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui/button";
+import { formatDate } from "@/lib/format-date";
 
 export default async function ArticlePreviewPage({
   params,
@@ -41,13 +42,7 @@ export default async function ArticlePreviewPage({
               {article.status}
             </Badge>
             <span className="text-xs text-muted-foreground">
-              {article.createdAt
-                ? new Date(article.createdAt).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })
-                : ""}
+              {formatDate(article.createdAt)}
             </span>
           </div>
           <div className="flex items-center gap-2">

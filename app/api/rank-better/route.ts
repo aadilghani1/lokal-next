@@ -2,16 +2,7 @@ import { NextResponse } from "next/server";
 import { rankBetterRequestSchema } from "@/domains/article";
 import { extractBusinessInfo } from "@/services/tavily-service";
 import { createContentJob } from "@/services/article-service";
-
-const CONTENT_GEN_URL =
-  process.env.CONTENT_GEN_URL ?? "https://content-gen.openhook.dev";
-const CONTENT_GEN_TOKEN = process.env.CONTENT_GEN_TOKEN ?? "";
-
-function getHeaders(): Record<string, string> {
-  const h: Record<string, string> = { "Content-Type": "application/json" };
-  if (CONTENT_GEN_TOKEN) h["Authorization"] = `Bearer ${CONTENT_GEN_TOKEN}`;
-  return h;
-}
+import { CONTENT_GEN_URL, getContentGenHeaders } from "@/lib/content-gen";
 
 export async function POST(request: Request) {
   let raw: unknown;
@@ -25,7 +16,7 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Invalid request" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -55,7 +46,7 @@ export async function POST(request: Request) {
 
     const startRes = await fetch(`${CONTENT_GEN_URL}/api/v1/analyze`, {
       method: "POST",
-      headers: getHeaders(),
+      headers: getContentGenHeaders(),
       body: JSON.stringify(analyzeBody),
     });
 
@@ -64,13 +55,12 @@ export async function POST(request: Request) {
       console.error("[rank-better] start failed:", startRes.status, errBody);
       return NextResponse.json(
         { error: "Content generation failed to start." },
-        { status: 502 }
+        { status: 502 },
       );
     }
 
     const startData = await startRes.json();
 
-    // Persist the content job record
     await createContentJob({
       jobId: startData.job_id,
       tenantSlug,
@@ -89,7 +79,7 @@ export async function POST(request: Request) {
     console.error("rank-better failed:", err);
     return NextResponse.json(
       { error: "Failed to generate article. Please try again." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

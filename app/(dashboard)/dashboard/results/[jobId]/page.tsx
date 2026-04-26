@@ -1,13 +1,12 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { DashboardHeader } from "@/components/dashboard-header";
 import {
   getContentJobByJobId,
   getArticlesByJobId,
-  completeContentJob,
-  createArticle,
-  createContentJob,
 } from "@/services/article-service";
+import { ensureDataFromBackend } from "@/services/backend-sync";
+import type { ContentJob } from "@/domains/article";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -26,60 +25,26 @@ import {
   Article as ArticleIcon,
 } from "@phosphor-icons/react/dist/ssr";
 
-const CONTENT_GEN_URL = process.env.CONTENT_GEN_URL ?? "https://content-gen.openhook.dev";
-const CONTENT_GEN_TOKEN = process.env.CONTENT_GEN_TOKEN ?? "";
-
-async function ensureDataFromBackend(jobId: string, tenantSlug: string) {
-  const headers: Record<string, string> = {};
-  if (CONTENT_GEN_TOKEN) headers["Authorization"] = `Bearer ${CONTENT_GEN_TOKEN}`;
-
-  const res = await fetch(`${CONTENT_GEN_URL}/api/v1/analyze/${jobId}`, { headers });
-  if (!res.ok) return null;
-
-  const data = await res.json();
-  if (data.status !== "completed" || !data.content) return null;
-
-  // Ensure content job exists
-  let contentJob = await getContentJobByJobId(jobId);
-  if (!contentJob) {
-    contentJob = await createContentJob({
-      jobId,
-      tenantSlug,
-      businessName: data.business?.name,
-      businessCategory: data.business?.category,
-      businessLocation: data.business?.location,
-    });
-  }
-
-  if (contentJob.status !== "completed") {
-    contentJob = await completeContentJob(jobId, {
-      competitors: data.competitors ?? [],
-      topicClusters: data.topic_clusters ?? [],
-      totalKeywordsFound: data.total_keywords_found ?? 0,
-      totalClusters: data.total_clusters ?? 0,
-      agentToolCalls: data.content.tool_calls ?? [],
-      agentInputTokens: data.content.total_input_tokens ?? 0,
-      agentOutputTokens: data.content.total_output_tokens ?? 0,
-    });
-  }
-
-  // Create articles if none exist
-  const existing = await getArticlesByJobId(jobId);
-  if (existing.length === 0 && data.content.articles?.length > 0) {
-    for (const ba of data.content.articles) {
-      await createArticle({
-        jobId,
-        contentJobId: contentJob.id,
-        tenantSlug,
-        title: ba.meta_title || ba.target_keyword || "SEO Article",
-        markdownContent: ba.article_markdown,
-        clusterKeywords: [ba.target_keyword, ...(ba.supporting_keywords ?? [])],
-        schemaJsonld: ba.schema_jsonld,
-      });
-    }
-  }
-
-  return contentJob;
+function StatCard({
+  icon: Icon,
+  value,
+  label,
+}: {
+  icon: React.ComponentType<React.ComponentProps<typeof Target>>;
+  value: number;
+  label: string;
+}) {
+  return (
+    <Card className="shadow-(--shadow-surface)">
+      <CardContent className="flex items-center gap-3 py-4">
+        <Icon className="size-8 text-primary" weight="duotone" />
+        <div>
+          <div className="text-2xl font-bold font-mono">{value}</div>
+          <div className="text-xs text-muted-foreground">{label}</div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default async function ResultsPage({
@@ -92,9 +57,8 @@ export default async function ResultsPage({
   const { jobId } = await params;
   const { tenantSlug = "default" } = await searchParams;
 
-  let contentJob = await getContentJobByJobId(jobId);
+  let contentJob: ContentJob | null = await getContentJobByJobId(jobId);
 
-  // If content job is missing or incomplete, hydrate from backend
   if (!contentJob || contentJob.status !== "completed") {
     const hydrated = await ensureDataFromBackend(jobId, tenantSlug);
     if (hydrated) {
@@ -116,9 +80,8 @@ export default async function ResultsPage({
       />
 
       <div className="flex flex-1 flex-col gap-8 overflow-auto px-8 py-6 pb-16">
-        {/* Header */}
         <div>
-          <h2 className="text-xl font-semibold">
+          <h2 className="font-heading text-xl font-semibold tracking-tight">
             {contentJob.businessName ?? "Content Strategy"}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -130,40 +93,14 @@ export default async function ResultsPage({
           </p>
         </div>
 
-        {/* Stats */}
         <div className="grid gap-4 sm:grid-cols-3">
-          <Card>
-            <CardContent className="flex items-center gap-3 py-4">
-              <Target className="size-8 text-primary" weight="duotone" />
-              <div>
-                <div className="text-2xl font-bold">{contentJob.totalKeywordsFound}</div>
-                <div className="text-xs text-muted-foreground">Keywords Found</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 py-4">
-              <TrendUp className="size-8 text-primary" weight="duotone" />
-              <div>
-                <div className="text-2xl font-bold">{contentJob.totalClusters}</div>
-                <div className="text-xs text-muted-foreground">Topic Clusters</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 py-4">
-              <ArticleIcon className="size-8 text-primary" weight="duotone" />
-              <div>
-                <div className="text-2xl font-bold">{articles.length}</div>
-                <div className="text-xs text-muted-foreground">Articles Ready</div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={Target} value={contentJob.totalKeywordsFound} label="Keywords Found" />
+          <StatCard icon={TrendUp} value={contentJob.totalClusters} label="Topic Clusters" />
+          <StatCard icon={ArticleIcon} value={articles.length} label="Articles Ready" />
         </div>
 
-        {/* Competitors */}
         {contentJob.competitors.length > 0 && (
-          <Card>
+          <Card className="shadow-(--shadow-surface)">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Globe className="size-4" weight="bold" />
@@ -185,10 +122,10 @@ export default async function ResultsPage({
                     <TableRow key={c.domain}>
                       <TableCell className="font-medium">{c.domain}</TableCell>
                       <TableCell className="text-right font-mono text-sm">
-                        {c.organic_traffic?.toLocaleString() ?? "—"}
+                        {c.organic_traffic?.toLocaleString() ?? "-"}
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm">
-                        {c.organic_keywords?.toLocaleString() ?? "—"}
+                        {c.organic_keywords?.toLocaleString() ?? "-"}
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm">
                         {c.pages_crawled}
@@ -201,51 +138,57 @@ export default async function ResultsPage({
           </Card>
         )}
 
-        {/* Articles */}
-        <div>
-          <h3 className="text-sm font-medium mb-3">Generated Articles</h3>
-          <div className="grid gap-4">
-            {articles.map((article) => (
-              <Link
-                key={article.id}
-                href={`/dashboard/articles/${article.id}`}
-                className="block"
-              >
-                <Card className="hover:bg-accent/50 transition-colors">
-                  <CardContent className="flex items-center justify-between py-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm truncate">
-                          {article.title}
-                        </span>
-                        <Badge variant="secondary" className="text-[11px] shrink-0">
-                          {article.status}
-                        </Badge>
-                      </div>
-                      {article.clusterKeywords && article.clusterKeywords.length > 0 && (
-                        <div className="flex gap-1.5 flex-wrap">
-                          {article.clusterKeywords.slice(0, 5).map((kw) => (
-                            <span
-                              key={kw}
-                              className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground"
-                            >
-                              {kw}
-                            </span>
-                          ))}
+        {articles.length > 0 && (
+          <div>
+            <h3 className="text-sm font-medium mb-3">Generated Articles</h3>
+            <div className="grid gap-3">
+              {articles.map((article) => (
+                <Link
+                  key={article.id}
+                  href={`/dashboard/articles/${article.id}`}
+                  className="block"
+                >
+                  <Card className="shadow-(--shadow-surface) hover:shadow-(--shadow-button-hover) transition-shadow">
+                    <CardContent className="flex items-center justify-between py-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-sm truncate">
+                            {article.title}
+                          </span>
+                          <Badge
+                            variant="secondary"
+                            className="text-[11px] shrink-0"
+                          >
+                            {article.status}
+                          </Badge>
                         </div>
-                      )}
-                    </div>
-                    <ArrowRight className="size-4 text-muted-foreground shrink-0 ml-4" />
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+                        {article.clusterKeywords &&
+                          article.clusterKeywords.length > 0 && (
+                            <div className="flex gap-1.5 flex-wrap">
+                              {article.clusterKeywords
+                                .slice(0, 5)
+                                .map((kw) => (
+                                  <span
+                                    key={kw}
+                                    className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground"
+                                  >
+                                    {kw}
+                                  </span>
+                                ))}
+                            </div>
+                          )}
+                      </div>
+                      <ArrowRight className="size-4 text-muted-foreground shrink-0 ml-4" />
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Topic Clusters */}
         {contentJob.topicClusters.length > 0 && (
-          <Card>
+          <Card className="shadow-(--shadow-surface)">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Target className="size-4" weight="bold" />
@@ -268,7 +211,10 @@ export default async function ResultsPage({
                       <TableCell>
                         <div className="flex gap-1 flex-wrap">
                           {cluster.keywords.slice(0, 3).map((kw) => (
-                            <span key={kw} className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                            <span
+                              key={kw}
+                              className="text-xs bg-muted px-1.5 py-0.5 rounded"
+                            >
                               {kw}
                             </span>
                           ))}

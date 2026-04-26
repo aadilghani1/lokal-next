@@ -68,14 +68,12 @@ function KeywordSerpUI(props: ToolUIProps) {
 
   return (
     <div className="rounded-lg overflow-hidden border border-border/50">
-      {/* Search bar mimicking Google */}
       <div className="px-4 py-2.5 bg-muted/30 border-b border-border/30">
         <div className="flex items-center gap-2 rounded-full border border-border/40 bg-background px-3 py-1">
           <svg className="size-3 text-muted-foreground/40" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5"/><path d="m11 11 3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
           <span className="text-[13px]">{keyword}</span>
         </div>
       </div>
-      {/* SERP results */}
       {results.length > 0 ? (
         <div className="divide-y divide-border/20">
           {results.map((r, i) => (
@@ -100,7 +98,6 @@ function KeywordResearchUI(props: ToolUIProps) {
 
   return (
     <div className="rounded-lg overflow-hidden border border-border/50">
-      {/* Seeds */}
       <div className="px-4 py-2.5 bg-muted/30 border-b border-border/30">
         <div className="flex items-center gap-1.5 flex-wrap">
           {seeds.slice(0, 4).map((kw) => (
@@ -109,7 +106,6 @@ function KeywordResearchUI(props: ToolUIProps) {
           {seeds.length > 4 && <span className="text-[10px] text-muted-foreground/40">+{seeds.length - 4}</span>}
         </div>
       </div>
-      {/* Results as mini data table */}
       {results.length > 0 ? (
         <div className="px-4 py-2">
           <div className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-0.5">
@@ -136,11 +132,9 @@ function TavilySearchUI(props: ToolUIProps) {
 
   return (
     <div className="rounded-lg overflow-hidden border border-border/50">
-      {/* Query */}
       <div className="px-4 py-2.5 bg-muted/30 border-b border-border/30">
         <p className="text-[13px] italic text-foreground/70">&ldquo;{query}&rdquo;</p>
       </div>
-      {/* Web results as reader cards */}
       {results.length > 0 ? (
         <div className="divide-y divide-border/20">
           {results.map((r, i) => (

@@ -3,14 +3,7 @@
 import { db } from "@/db";
 import { profiles, audits } from "@/db/schema";
 import { eq } from "drizzle-orm";
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 50) || "business";
-}
+import { slugify } from "@/lib/slugify";
 
 export interface ProfileData {
   id: string;
@@ -42,7 +35,6 @@ export async function findOrCreateProfile(
 ): Promise<ProfileData> {
   const tenantSlug = slugify(data.name || "business");
 
-  // Check if profile exists for this URL
   const [existing] = await db
     .select()
     .from(profiles)
@@ -50,7 +42,6 @@ export async function findOrCreateProfile(
     .limit(1);
 
   if (existing) {
-    // Update with latest data
     const [updated] = await db
       .update(profiles)
       .set({

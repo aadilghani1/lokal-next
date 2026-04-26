@@ -5,6 +5,7 @@ import { getProfileBySlug } from "@/services/profile-service";
 import { markdownToHtml } from "@/lib/markdown";
 import { ArticleRenderer } from "@/components/blog/article-renderer";
 import { LogoMark } from "@/components/logo";
+import { formatDate } from "@/lib/format-date";
 
 export default async function BlogArticlePage({
   params,
@@ -74,20 +75,13 @@ export default async function BlogArticlePage({
             <div className="flex flex-col">
               <span className="text-sm font-medium">{tenant}</span>
               <span className="text-xs text-muted-foreground">
-                {article.publishedAt
-                  ? new Date(article.publishedAt).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })
-                  : "Draft"}
+                {article.publishedAt ? formatDate(article.publishedAt) : "Draft"}
               </span>
             </div>
           </div>
         </div>
         {photoRefs.length > 0 && (
           <div className="mb-10 -mx-2 overflow-hidden rounded-xl">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={`/api/photos?ref=${photoRefs[0]}`}
               alt={article.title}
@@ -100,7 +94,6 @@ export default async function BlogArticlePage({
         {photoRefs.length > 1 && (
           <div className="mt-12 grid grid-cols-2 gap-3">
             {photoRefs.slice(1, 5).map((ref, i) => (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 key={i}
                 src={`/api/photos?ref=${ref}`}
@@ -111,7 +104,6 @@ export default async function BlogArticlePage({
             ))}
           </div>
         )}
-        {/* Related Articles via pgvector similarity */}
         <RelatedArticles articleId={article.id} tenant={tenant} />
       </main>
     </>

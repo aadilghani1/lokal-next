@@ -75,17 +75,17 @@ export function CompetitorTable({
                       }`}>
                         {competitor.serpRank}
                       </span>
-                    ) : "—"}
+                    ) : "-"}
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs text-muted-foreground">
                     {competitor.organicTraffic
                       ? competitor.organicTraffic.toLocaleString()
-                      : "—"}
+                      : "-"}
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs text-muted-foreground">
                     {competitor.organicKeywords
                       ? competitor.organicKeywords.toLocaleString()
-                      : "—"}
+                      : "-"}
                   </TableCell>
                 </TableRow>
               );

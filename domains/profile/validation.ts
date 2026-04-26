@@ -14,8 +14,8 @@ export const gbpUrlSchema = z
     "Please enter a valid Google Business Profile URL"
   );
 
-export const profileSubmissionSchema = z.object({
+export const auditUrlFormSchema = z.object({
   url: gbpUrlSchema,
 });
 
-export type ProfileSubmissionInput = z.infer<typeof profileSubmissionSchema>;
+export type AuditUrlFormInput = z.infer<typeof auditUrlFormSchema>;

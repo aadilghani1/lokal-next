@@ -1,6 +1,7 @@
 "use server";
 
 import { tavily } from "@tavily/core";
+import { CONTENT_GEN_URL, getContentGenHeaders } from "@/lib/content-gen";
 
 export interface BusinessInfo {
   name: string;
@@ -195,7 +196,6 @@ export async function extractBusinessInfo(
     console.warn("[biz] Places API failed, falling back to name parse + Tavily search");
   }
 
-  // Non-Maps URL or Places API fallback: extract with Tavily
   const tvly = getTavily();
   if (!tvly) return null;
 
@@ -245,9 +245,6 @@ function parseLocationFromUrl(url: string): string {
   return placeMatch[1].replace(/\+/g, " ").replace(/@.*/, "").trim();
 }
 
-const CONTENT_GEN_URL = process.env.CONTENT_GEN_URL ?? "https://content-gen.openhook.dev";
-const CONTENT_GEN_TOKEN = process.env.CONTENT_GEN_TOKEN ?? "";
-
 export async function searchCompetitors(
   businessName: string,
   location: string,
@@ -256,12 +253,9 @@ export async function searchCompetitors(
   console.log("[competitors] Discovering via SERP: %s / %s / %s", businessName, location, category);
 
   try {
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (CONTENT_GEN_TOKEN) headers["Authorization"] = `Bearer ${CONTENT_GEN_TOKEN}`;
-
     const res = await fetch(`${CONTENT_GEN_URL}/api/v1/discover-competitors`, {
       method: "POST",
-      headers,
+      headers: getContentGenHeaders(),
       body: JSON.stringify({
         business_name: businessName,
         business_category: category,

@@ -14,8 +14,7 @@ export function Hero() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const auditUrl = `/dashboard/audit?url=${encodeURIComponent(url)}`;
-    router.push(auditUrl);
+    router.push(`/dashboard/audit/${encodeURIComponent(url)}`);
   }
 
   return (

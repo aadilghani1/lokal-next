@@ -2,27 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import type { AuditContext } from "@/domains/audit";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, SpinnerGap, WarningCircle } from "@phosphor-icons/react/dist/ssr";
-
-interface RankBetterCtaProps {
-  gbpUrl: string;
-  tenantSlug: string;
-  profileId?: string;
-  competitorUrls?: string[];
-  businessName?: string;
-  businessCategory?: string;
-  businessLocation?: string;
-  businessRating?: number;
-  businessReviewCount?: number;
-}
 
 type CtaState =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "error"; message: string };
 
-export function RankBetterCta({ gbpUrl, tenantSlug, profileId, competitorUrls, businessName, businessCategory, businessLocation, businessRating, businessReviewCount }: RankBetterCtaProps) {
+export function RankBetterCta({ context }: { context: AuditContext }) {
   const [state, setState] = useState<CtaState>({ status: "idle" });
   const router = useRouter();
 
@@ -32,7 +21,17 @@ export function RankBetterCta({ gbpUrl, tenantSlug, profileId, competitorUrls, b
       const res = await fetch("/api/rank-better", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gbpUrl, tenantSlug, profileId, competitorUrls, businessName, businessCategory, businessLocation, businessRating, businessReviewCount }),
+        body: JSON.stringify({
+          gbpUrl: context.gbpUrl,
+          tenantSlug: context.tenantSlug,
+          profileId: context.profileId,
+          competitorUrls: context.competitorUrls,
+          businessName: context.business?.name,
+          businessCategory: context.business?.category,
+          businessLocation: context.business?.location,
+          businessRating: context.business?.rating,
+          businessReviewCount: context.business?.reviewCount,
+        }),
       });
 
       if (!res.ok) {
@@ -42,7 +41,7 @@ export function RankBetterCta({ gbpUrl, tenantSlug, profileId, competitorUrls, b
 
       const data = await res.json();
       router.push(
-        `/dashboard/generating?jobId=${data.jobId}&tenantSlug=${tenantSlug}&businessName=${encodeURIComponent(data.businessName ?? "")}`
+        `/dashboard/generating?jobId=${data.jobId}&tenantSlug=${context.tenantSlug}&businessName=${encodeURIComponent(data.businessName ?? "")}`,
       );
     } catch (err) {
       setState({

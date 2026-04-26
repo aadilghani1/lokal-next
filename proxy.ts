@@ -1,28 +1,43 @@
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 
-export default function middleware(request: NextRequest) {
-  const url = new URL(request.url);
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/blog(.*)",
+  "/api/webhooks(.*)",
+  "/api/photos(.*)",
+]);
+
+function handleBlogRewrite(request: NextRequest): NextResponse | null {
   const hostname = request.headers.get("host") ?? "";
-
   const blogDomain = process.env.BLOG_DOMAIN ?? "blogger.com";
-  if (hostname.endsWith(blogDomain) && hostname !== blogDomain) {
-    const tenant = hostname.replace(`.${blogDomain}`, "");
-    const pathSegments = url.pathname.split("/").filter(Boolean);
 
-    if (pathSegments[0] === "article" && pathSegments[1]) {
-      const slug = pathSegments[1];
-      return NextResponse.rewrite(
-        new URL(`/blog/${tenant}/${slug}`, request.url)
-      );
-    }
+  if (!hostname.endsWith(blogDomain) || hostname === blogDomain) return null;
 
+  const tenant = hostname.replace(`.${blogDomain}`, "");
+  const pathSegments = new URL(request.url).pathname
+    .split("/")
+    .filter(Boolean);
+
+  if (pathSegments[0] === "article" && pathSegments[1]) {
     return NextResponse.rewrite(
-      new URL(`/blog/${tenant}`, request.url)
+      new URL(`/blog/${tenant}/${pathSegments[1]}`, request.url)
     );
   }
 
-  return NextResponse.next();
+  return NextResponse.rewrite(new URL(`/blog/${tenant}`, request.url));
 }
+
+export default clerkMiddleware(async (auth, request) => {
+  const blogRewrite = handleBlogRewrite(request);
+  if (blogRewrite) return blogRewrite;
+
+  if (!isPublicRoute(request)) {
+    await auth.protect();
+  }
+});
 
 export const config = {
   matcher: [

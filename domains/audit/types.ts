@@ -25,3 +25,17 @@ export interface Competitor {
   organicKeywords: number | null;
   serpRank: number | null;
 }
+
+export interface AuditContext {
+  gbpUrl: string;
+  profileId: string | null;
+  tenantSlug: string;
+  business: {
+    name?: string;
+    category?: string;
+    location?: string;
+    rating?: number;
+    reviewCount?: number;
+  } | null;
+  competitorUrls: string[];
+}

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { SquaresFour, Storefront, GearSix, MagnifyingGlass, FileText } from "@phosphor-icons/react/dist/ssr";
+import { SquaresFour, MagnifyingGlass, FileText } from "@phosphor-icons/react/dist/ssr";
 import { LogoMark } from "@/components/logo";
 import { NavUser } from "@/components/nav-user";
 import { SearchForm } from "@/components/search-form";
@@ -30,11 +30,6 @@ const navMain = [
         icon: SquaresFour,
       },
       {
-        title: "Profiles",
-        url: "/dashboard/profiles",
-        icon: Storefront,
-      },
-      {
         title: "Audit",
         url: "/dashboard/audit",
         icon: MagnifyingGlass,
@@ -43,16 +38,6 @@ const navMain = [
         title: "Articles",
         url: "/dashboard/articles",
         icon: FileText,
-      },
-    ],
-  },
-  {
-    title: "Account",
-    items: [
-      {
-        title: "Settings",
-        url: "/dashboard/settings",
-        icon: GearSix,
       },
     ],
   },

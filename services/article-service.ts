@@ -1,17 +1,16 @@
 "use server";
 
 import { db } from "@/db";
-import { articles, contentJobs } from "@/db/schema";
+import { articles, contentJobs, profiles } from "@/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
-import type { BlogArticle, ContentJob } from "@/domains/article";
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 80);
-}
+import { slugify } from "@/lib/slugify";
+import type {
+  BlogArticle,
+  ContentJob,
+  ContentJobStatus,
+  CompetitorResult,
+  TopicClusterResult,
+} from "@/domains/article";
 
 function rowToArticle(row: typeof articles.$inferSelect): BlogArticle {
   return {
@@ -23,25 +22,44 @@ function rowToArticle(row: typeof articles.$inferSelect): BlogArticle {
     slug: row.slug,
     title: row.title,
     markdownContent: row.markdownContent,
-    clusterKeywords: row.clusterKeywords as string[] | null,
+    clusterKeywords: (row.clusterKeywords as string[]) ?? null,
     searchVolume: row.searchVolume,
     keywordDifficulty: row.keywordDifficulty,
-    schemaJsonld: row.schemaJsonld as Record<string, unknown>[] | null,
+    schemaJsonld: (row.schemaJsonld as Record<string, unknown>[]) ?? null,
     status: row.status as BlogArticle["status"],
     createdAt: row.createdAt,
     publishedAt: row.publishedAt,
   };
 }
 
-// --- Content Jobs ---
+function rowToContentJob(row: typeof contentJobs.$inferSelect): ContentJob {
+  return {
+    id: row.id,
+    jobId: row.jobId,
+    tenantSlug: row.tenantSlug,
+    businessName: row.businessName,
+    businessCategory: row.businessCategory,
+    businessLocation: row.businessLocation,
+    competitors: (row.competitors as CompetitorResult[]) ?? [],
+    topicClusters: (row.topicClusters as TopicClusterResult[]) ?? [],
+    totalKeywordsFound: row.totalKeywordsFound ?? 0,
+    totalClusters: row.totalClusters ?? 0,
+    status: row.status as ContentJobStatus,
+    createdAt: row.createdAt,
+  };
+}
 
-export async function createContentJob(data: {
+interface CreateContentJobInput {
   jobId: string;
   tenantSlug: string;
   businessName?: string;
   businessCategory?: string;
   businessLocation?: string;
-}): Promise<ContentJob> {
+}
+
+export async function createContentJob(
+  data: CreateContentJobInput
+): Promise<ContentJob> {
   const [row] = await db
     .insert(contentJobs)
     .values({
@@ -61,17 +79,19 @@ export async function createContentJob(data: {
   return rowToContentJob(row);
 }
 
+interface CompleteContentJobInput {
+  competitors: CompetitorResult[];
+  topicClusters: TopicClusterResult[];
+  totalKeywordsFound: number;
+  totalClusters: number;
+  agentToolCalls: Record<string, unknown>[];
+  agentInputTokens: number;
+  agentOutputTokens: number;
+}
+
 export async function completeContentJob(
   jobId: string,
-  data: {
-    competitors: unknown[];
-    topicClusters: unknown[];
-    totalKeywordsFound: number;
-    totalClusters: number;
-    agentToolCalls: unknown[];
-    agentInputTokens: number;
-    agentOutputTokens: number;
-  }
+  data: CompleteContentJobInput
 ): Promise<ContentJob> {
   const [row] = await db
     .update(contentJobs)
@@ -88,11 +108,13 @@ export async function completeContentJob(
     .where(eq(contentJobs.jobId, jobId))
     .returning();
 
-  if (!row) throw new Error("Content job not found");
+  if (!row) throw new Error(`Content job not found: ${jobId}`);
   return rowToContentJob(row);
 }
 
-export async function getContentJobByJobId(jobId: string): Promise<ContentJob | null> {
+export async function getContentJobByJobId(
+  jobId: string
+): Promise<ContentJob | null> {
   const [row] = await db
     .select()
     .from(contentJobs)
@@ -102,26 +124,37 @@ export async function getContentJobByJobId(jobId: string): Promise<ContentJob | 
   return row ? rowToContentJob(row) : null;
 }
 
-function rowToContentJob(row: typeof contentJobs.$inferSelect): ContentJob {
-  return {
-    id: row.id,
-    jobId: row.jobId,
-    tenantSlug: row.tenantSlug,
-    businessName: row.businessName,
-    businessCategory: row.businessCategory,
-    businessLocation: row.businessLocation,
-    competitors: (row.competitors as ContentJob["competitors"]) ?? [],
-    topicClusters: (row.topicClusters as ContentJob["topicClusters"]) ?? [],
-    totalKeywordsFound: row.totalKeywordsFound ?? 0,
-    totalClusters: row.totalClusters ?? 0,
-    status: row.status,
-    createdAt: row.createdAt,
-  };
+export interface ProcessingJob {
+  jobId: string;
+  tenantSlug: string;
+  businessName: string | null;
+  createdAt: Date;
 }
 
-// --- Articles ---
+export async function getProcessingJobs(
+  userId: string
+): Promise<ProcessingJob[]> {
+  const rows = await db
+    .select({
+      jobId: contentJobs.jobId,
+      tenantSlug: contentJobs.tenantSlug,
+      businessName: contentJobs.businessName,
+      createdAt: contentJobs.createdAt,
+    })
+    .from(contentJobs)
+    .innerJoin(profiles, eq(contentJobs.tenantSlug, profiles.tenantSlug))
+    .where(
+      and(
+        eq(profiles.userId, userId),
+        eq(contentJobs.status, "processing"),
+      )
+    )
+    .orderBy(desc(contentJobs.createdAt));
 
-export async function createArticle(input: {
+  return rows;
+}
+
+interface CreateArticleInput {
   jobId: string;
   contentJobId?: string;
   tenantSlug: string;
@@ -130,10 +163,14 @@ export async function createArticle(input: {
   clusterKeywords?: string[];
   searchVolume?: number;
   keywordDifficulty?: number;
-  schemaJsonld?: unknown[];
+  schemaJsonld?: Record<string, unknown>[];
   embedding?: number[];
-}): Promise<BlogArticle> {
-  const slug = slugify(input.title);
+}
+
+export async function createArticle(
+  input: CreateArticleInput
+): Promise<BlogArticle> {
+  const slug = slugify(input.title, 80);
 
   const [row] = await db
     .insert(articles)
@@ -165,7 +202,6 @@ export async function createArticle(input: {
     })
     .returning();
 
-  // Store embedding via raw SQL (drizzle doesn't support vector type)
   if (input.embedding && input.embedding.length > 0) {
     const vectorStr = `[${input.embedding.join(",")}]`;
     await db.execute(
@@ -176,7 +212,9 @@ export async function createArticle(input: {
   return rowToArticle(row);
 }
 
-export async function getArticleById(id: string): Promise<BlogArticle | null> {
+export async function getArticleById(
+  id: string
+): Promise<BlogArticle | null> {
   const [row] = await db
     .select()
     .from(articles)
@@ -193,7 +231,7 @@ export async function publishArticle(id: string): Promise<BlogArticle> {
     .where(eq(articles.id, id))
     .returning();
 
-  if (!row) throw new Error("Article not found");
+  if (!row) throw new Error(`Article not found: ${id}`);
   return rowToArticle(row);
 }
 
@@ -225,7 +263,9 @@ export async function getArticlesByTenant(
   return rows.map(rowToArticle);
 }
 
-export async function getArticlesByJobId(jobId: string): Promise<BlogArticle[]> {
+export async function getArticlesByJobId(
+  jobId: string
+): Promise<BlogArticle[]> {
   const rows = await db
     .select()
     .from(articles)
@@ -235,14 +275,25 @@ export async function getArticlesByJobId(jobId: string): Promise<BlogArticle[]> 
 }
 
 export async function getAllArticles(): Promise<BlogArticle[]> {
-  const rows = await db.select().from(articles).orderBy(desc(articles.createdAt));
+  const rows = await db
+    .select()
+    .from(articles)
+    .orderBy(desc(articles.createdAt));
   return rows.map(rowToArticle);
+}
+
+interface SimilarArticle {
+  id: string;
+  title: string;
+  tenantSlug: string;
+  slug: string;
+  similarity: number;
 }
 
 export async function getSimilarArticles(
   articleId: string,
-  limit: number = 3
-): Promise<{ id: string; title: string; tenantSlug: string; slug: string; similarity: number }[]> {
+  limit = 3
+): Promise<SimilarArticle[]> {
   const rows = await db.execute(sql`
     SELECT
       b.id, b.title, b.tenant_slug, b.slug,
@@ -256,7 +307,15 @@ export async function getSimilarArticles(
     LIMIT ${limit}
   `);
 
-  return (rows.rows as { id: string; title: string; tenant_slug: string; slug: string; similarity: number }[]).map((r) => ({
+  return (
+    rows.rows as {
+      id: string;
+      title: string;
+      tenant_slug: string;
+      slug: string;
+      similarity: number;
+    }[]
+  ).map((r) => ({
     id: r.id,
     title: r.title,
     tenantSlug: r.tenant_slug,

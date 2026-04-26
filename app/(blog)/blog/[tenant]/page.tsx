@@ -1,5 +1,6 @@
 import { getArticlesByTenant } from "@/services/article-service";
 import { LogoMark } from "@/components/logo";
+import { formatDate } from "@/lib/format-date";
 
 export default async function BlogIndexPage({
   params,
@@ -40,12 +41,7 @@ export default async function BlogIndexPage({
                 </h2>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {article.publishedAt && (
-                    <time>
-                      {new Date(article.publishedAt).toLocaleDateString(
-                        "en-US",
-                        { year: "numeric", month: "short", day: "numeric" }
-                      )}
-                    </time>
+                    <time>{formatDate(article.publishedAt)}</time>
                   )}
                   <span>&middot;</span>
                   <span>5 min read</span>

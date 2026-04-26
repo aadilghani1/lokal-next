@@ -4,10 +4,47 @@ import { useEffect, useCallback, useState, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { EventFeed } from "@/components/generating/event-feed";
-import { useEventStream, type SSEEvent } from "@/hooks/use-event-stream";
-import { CircleNotch } from "@phosphor-icons/react/dist/ssr";
+import { useEventStream, type SSEEvent, type StreamStatus } from "@/hooks/use-event-stream";
+import { Shimmer } from "@/components/ai-elements/shimmer";
+import { CheckCircle, WarningCircle, Info } from "@phosphor-icons/react/dist/ssr";
 
 const POLL_INTERVAL = 3000;
+const COMPLETION_POLL_MAX = 30_000;
+
+interface StagePayload {
+  stage: string;
+  detail: string | null;
+}
+
+function StatusIndicator({ status, pollFallback, savingArticles }: {
+  status: StreamStatus;
+  pollFallback: boolean;
+  savingArticles: boolean;
+}) {
+  if (savingArticles) {
+    return <Shimmer duration={2}>Saving articles...</Shimmer>;
+  }
+
+  if (status === "complete") {
+    return (
+      <div className="flex items-center gap-2">
+        <CheckCircle className="size-4 text-primary" weight="fill" />
+        <span className="text-sm text-muted-foreground">Done! Redirecting to results...</span>
+      </div>
+    );
+  }
+
+  if (status === "error" && !pollFallback) {
+    return (
+      <div className="flex items-center gap-2">
+        <WarningCircle className="size-4 text-muted-foreground" weight="fill" />
+        <span className="text-sm text-muted-foreground">Connection lost, retrying...</span>
+      </div>
+    );
+  }
+
+  return <Shimmer duration={2.5}>Generating SEO content strategy...</Shimmer>;
+}
 
 export default function GeneratingPage() {
   const searchParams = useSearchParams();
@@ -20,7 +57,9 @@ export default function GeneratingPage() {
   const [hydratedEvents, setHydratedEvents] = useState<SSEEvent[]>([]);
   const hydrated = useRef(false);
 
-  // On mount: fetch current progress from DB and convert to events
+  const savingArticles = status === "complete";
+  const pollFallback = status === "error";
+
   useEffect(() => {
     if (!jobId || hydrated.current) return;
     hydrated.current = true;
@@ -31,7 +70,11 @@ export default function GeneratingPage() {
           `/api/rank-better/${jobId}?tenantSlug=${encodeURIComponent(tenantSlug)}`
         );
         if (!res.ok) return;
-        const data = await res.json();
+        const data = await res.json() as {
+          status: string;
+          articlesCreated?: boolean;
+          progress?: { stages?: StagePayload[] };
+        };
 
         if (data.status === "completed" && data.articlesCreated) {
           router.push(
@@ -40,13 +83,12 @@ export default function GeneratingPage() {
           return;
         }
 
-        const progress = data.progress;
-        if (!progress?.stages) return;
+        if (!data.progress?.stages) return;
 
-        const restored: SSEEvent[] = progress.stages.map(
-          (s: { name: string; detail: string | null }) => ({
+        const restored: SSEEvent[] = data.progress.stages.map(
+          (s) => ({
             event: "stage" as const,
-            data: { stage: s.name, detail: s.detail },
+            data: { stage: s.stage, detail: s.detail },
           })
         );
         setHydratedEvents(restored);
@@ -54,57 +96,71 @@ export default function GeneratingPage() {
     })();
   }, [jobId, tenantSlug, router]);
 
-  // Merge: hydrated (from DB) + live SSE events, deduplicate stages
-  const seenStages = new Set(hydratedEvents
-    .filter((e) => e.event === "stage")
-    .map((e) => (e as { event: "stage"; data: { stage: string } }).data.stage));
+  const sseStageMap = new Map<string, StagePayload>();
+  for (const e of sseEvents) {
+    if (e.event === "stage") {
+      sseStageMap.set(e.data.stage, e.data);
+    }
+  }
+
+  const mergedHydrated: SSEEvent[] = hydratedEvents.map((e) => {
+    if (e.event !== "stage") return e;
+    const sseVersion = sseStageMap.get(e.data.stage);
+    if (sseVersion) return { event: "stage" as const, data: sseVersion };
+    return e;
+  });
+
+  const hydratedStages = new Set(
+    mergedHydrated
+      .filter((e): e is SSEEvent & { event: "stage" } => e.event === "stage")
+      .map((e) => e.data.stage),
+  );
 
   const deduped = sseEvents.filter((e) => {
     if (e.event !== "stage") return true;
-    const stage = (e as { event: "stage"; data: { stage: string } }).data.stage;
-    if (seenStages.has(stage)) return false;
-    seenStages.add(stage);
+    const stage = (e as SSEEvent & { event: "stage" }).data.stage;
+    if (hydratedStages.has(stage)) return false;
+    hydratedStages.add(stage);
     return true;
   });
 
-  const allEvents = [...hydratedEvents, ...deduped];
+  const allEvents = [...mergedHydrated, ...deduped];
 
-  // On SSE complete: trigger the poll handler to create articles, then redirect
   useEffect(() => {
     if (status !== "complete" || !jobId) return;
 
-    (async () => {
-      try {
-        const res = await fetch(
-          `/api/rank-better/${jobId}?tenantSlug=${encodeURIComponent(tenantSlug)}`
-        );
-        if (res.ok) {
-          const data = await res.json();
-          if (data.articlesCreated) {
-            router.push(
-              `/dashboard/results/${jobId}?tenantSlug=${encodeURIComponent(tenantSlug)}`
-            );
-            return;
+    const started = Date.now();
+    let cancelled = false;
+
+    async function pollForArticles() {
+      while (!cancelled && Date.now() - started < COMPLETION_POLL_MAX) {
+        try {
+          const res = await fetch(
+            `/api/rank-better/${jobId}?tenantSlug=${encodeURIComponent(tenantSlug)}`
+          );
+          if (res.ok) {
+            const data = await res.json() as { articlesCreated?: boolean };
+            if (data.articlesCreated) {
+              router.push(
+                `/dashboard/results/${jobId}?tenantSlug=${encodeURIComponent(tenantSlug)}`
+              );
+              return;
+            }
           }
-        }
-      } catch {}
-      // Fallback redirect even if article creation failed
-      setTimeout(() => {
+        } catch {}
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL));
+      }
+
+      if (!cancelled) {
         router.push(
           `/dashboard/results/${jobId}?tenantSlug=${encodeURIComponent(tenantSlug)}`
         );
-      }, 2000);
-    })();
-  }, [status, jobId, tenantSlug, router]);
-
-  // Poll fallback if SSE fails completely
-  const [pollFallback, setPollFallback] = useState(false);
-
-  useEffect(() => {
-    if (status === "error" && sseEvents.length <= 1) {
-      setPollFallback(true);
+      }
     }
-  }, [status, sseEvents.length]);
+
+    pollForArticles();
+    return () => { cancelled = true; };
+  }, [status, jobId, tenantSlug, router]);
 
   const poll = useCallback(async () => {
     if (!jobId || !pollFallback) return;
@@ -113,14 +169,17 @@ export default function GeneratingPage() {
         `/api/rank-better/${jobId}?tenantSlug=${encodeURIComponent(tenantSlug)}`
       );
       if (!res.ok) return;
-      const data = await res.json();
+      const data = await res.json() as {
+        status: string;
+        articlesCreated?: boolean;
+        progress?: { stages?: StagePayload[] };
+      };
 
-      // Update hydrated events from progress
       if (data.progress?.stages) {
         const restored: SSEEvent[] = data.progress.stages.map(
-          (s: { name: string; detail: string | null }) => ({
+          (s) => ({
             event: "stage" as const,
-            data: { stage: s.name, detail: s.detail },
+            data: { stage: s.stage, detail: s.detail },
           })
         );
         setHydratedEvents(restored);
@@ -136,10 +195,25 @@ export default function GeneratingPage() {
 
   useEffect(() => {
     if (!pollFallback) return;
-    poll();
+    const timer = setTimeout(poll, 0);
     const interval = setInterval(poll, POLL_INTERVAL);
-    return () => clearInterval(interval);
+    return () => { clearTimeout(timer); clearInterval(interval); };
   }, [pollFallback, poll]);
+
+  const isActive = status === "connecting" || status === "connected" || pollFallback;
+
+  useEffect(() => {
+    if (!isActive) return;
+
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isActive]);
+
+  const isStreaming = status === "connected" || status === "connecting" || pollFallback;
 
   return (
     <>
@@ -150,27 +224,22 @@ export default function GeneratingPage() {
         ]}
       />
 
-      <div className="flex flex-1 flex-col items-center gap-6 overflow-auto px-8 py-12">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold">{businessName}</h2>
-          <div className="flex items-center justify-center gap-2 mt-1">
-            {status !== "complete" && status !== "error" && (
-              <CircleNotch className="size-3.5 text-primary animate-spin" weight="bold" />
-            )}
-            <p className="text-sm text-muted-foreground">
-              {status === "complete"
-                ? "Done! Redirecting to results..."
-                : status === "error" && !pollFallback
-                ? "Connection lost, retrying..."
-                : "Generating SEO content strategy..."}
-            </p>
-          </div>
+      <div className="flex flex-1 flex-col items-center gap-8 overflow-auto px-8 py-12">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <h2 className="font-heading text-xl font-semibold tracking-tight">
+            {businessName}
+          </h2>
+          <StatusIndicator status={status} pollFallback={pollFallback} savingArticles={savingArticles} />
         </div>
 
-        <EventFeed
-          events={allEvents}
-          isStreaming={status === "connected" || status === "connecting" || pollFallback}
-        />
+        {isActive && (
+          <div className="flex items-center gap-2 rounded-lg border bg-muted/50 px-4 py-2.5 text-xs text-muted-foreground">
+            <Info className="size-3.5 shrink-0" weight="fill" />
+            <span>Content generates in the background. You can safely leave - find this job on the <a href="/dashboard" className="underline hover:text-foreground">Overview</a> page.</span>
+          </div>
+        )}
+
+        <EventFeed events={allEvents} isStreaming={isStreaming} />
       </div>
     </>
   );

@@ -5,54 +5,35 @@ import {
   completeContentJob,
   getContentJobByJobId,
 } from "@/services/article-service";
-
-const CONTENT_GEN_URL =
-  process.env.CONTENT_GEN_URL ?? "https://content-gen.openhook.dev";
-const CONTENT_GEN_TOKEN = process.env.CONTENT_GEN_TOKEN ?? "";
-
-function getHeaders(): Record<string, string> {
-  const h: Record<string, string> = { "Content-Type": "application/json" };
-  if (CONTENT_GEN_TOKEN) h["Authorization"] = `Bearer ${CONTENT_GEN_TOKEN}`;
-  return h;
-}
-
-interface BackendArticle {
-  cluster_id: number;
-  target_keyword: string;
-  supporting_keywords: string[];
-  search_intent: string;
-  meta_title: string;
-  meta_description: string;
-  content_type: string;
-  competitive_angle: string;
-  article_markdown: string;
-  schema_jsonld?: Record<string, unknown>[];
-  embedding?: number[];
-}
+import {
+  backendArticleSchema,
+  type BackendArticle,
+  type BackendResponse,
+} from "@/domains/article";
+import { CONTENT_GEN_URL, getContentGenHeaders } from "@/lib/content-gen";
 
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ jobId: string }> }
+  { params }: { params: Promise<{ jobId: string }> },
 ) {
   const { jobId } = await params;
   const tenantSlug =
     new URL(_request.url).searchParams.get("tenantSlug") ?? "default";
 
   const res = await fetch(`${CONTENT_GEN_URL}/api/v1/analyze/${jobId}`, {
-    headers: getHeaders(),
+    headers: getContentGenHeaders(),
   });
 
   if (!res.ok) {
     return NextResponse.json(
       { error: "Failed to check job status" },
-      { status: 502 }
+      { status: 502 },
     );
   }
 
-  const data = await res.json();
+  const data = (await res.json()) as BackendResponse;
 
   if (data.status === "completed" && data.content) {
-    // Check if we already processed this job
     const existingJob = await getContentJobByJobId(jobId);
     if (existingJob && existingJob.status === "completed") {
       return NextResponse.json({
@@ -63,7 +44,6 @@ export async function GET(
     }
 
     try {
-      // Ensure content job exists
       let contentJob = existingJob;
       if (!contentJob) {
         contentJob = await createContentJob({
@@ -75,56 +55,54 @@ export async function GET(
         });
       }
 
-      // Store the full result data
       contentJob = await completeContentJob(jobId, {
-        competitors: data.competitors ?? [],
-        topicClusters: data.topic_clusters ?? [],
+        competitors: (data.competitors ?? []) as unknown as Parameters<typeof completeContentJob>[1]["competitors"],
+        topicClusters: (data.topic_clusters ?? []) as unknown as Parameters<typeof completeContentJob>[1]["topicClusters"],
         totalKeywordsFound: data.total_keywords_found ?? 0,
         totalClusters: data.total_clusters ?? 0,
-        agentToolCalls: data.content.tool_calls ?? [],
+        agentToolCalls: (data.content.tool_calls ?? []) as Record<string, unknown>[],
         agentInputTokens: data.content.total_input_tokens ?? 0,
         agentOutputTokens: data.content.total_output_tokens ?? 0,
       });
 
-      // Create individual articles from structured output
-      const backendArticles: BackendArticle[] =
-        data.content.articles ?? [];
+      const rawArticles = data.content.articles ?? [];
+      const createdArticles: { id: string; slug: string; title: string; targetKeyword?: string }[] = [];
 
-      const createdArticles = [];
+      if (rawArticles.length > 0) {
+        for (const raw of rawArticles) {
+          const parsed = backendArticleSchema.safeParse(raw);
+          if (!parsed.success) {
+            console.warn("[rank-better] Skipping invalid article:", parsed.error.message);
+            continue;
+          }
+          const ba: BackendArticle = parsed.data;
+          const title = ba.meta_title || ba.target_keyword || "SEO Article";
 
-      if (backendArticles.length > 0) {
-        for (const ba of backendArticles) {
-          const title =
-            ba.meta_title || ba.target_keyword || "SEO Article";
           const article = await createArticle({
             jobId,
             contentJobId: contentJob.id,
             tenantSlug,
             title,
             markdownContent: ba.article_markdown,
-            clusterKeywords: [
-              ba.target_keyword,
-              ...ba.supporting_keywords,
-            ],
-            searchVolume: undefined,
-            keywordDifficulty: undefined,
+            clusterKeywords: [ba.target_keyword, ...ba.supporting_keywords],
             schemaJsonld: ba.schema_jsonld,
             embedding: ba.embedding,
           });
+
           createdArticles.push({
             id: article.id,
             slug: article.slug,
             title: article.title,
             targetKeyword: ba.target_keyword,
-            searchIntent: ba.search_intent,
-            contentType: ba.content_type,
           });
         }
       } else if (data.content.full_response) {
-        // Fallback: single article from raw markdown
-        const md: string = data.content.full_response;
+        const md = data.content.full_response;
         const match = md.match(/^#\s+(.+)$/m);
-        const title = match ? match[1].trim().slice(0, 200) : "SEO Strategy";
+        const title = match
+          ? match[1].trim().slice(0, 200)
+          : "SEO Strategy";
+
         const article = await createArticle({
           jobId,
           contentJobId: contentJob.id,
@@ -132,6 +110,7 @@ export async function GET(
           title,
           markdownContent: md,
         });
+
         createdArticles.push({
           id: article.id,
           slug: article.slug,
@@ -149,7 +128,8 @@ export async function GET(
       console.error("[rank-better] article creation failed:", err);
       return NextResponse.json({
         ...data,
-        articleError: String(err),
+        articleError:
+          err instanceof Error ? err.message : "Unknown article creation error",
       });
     }
   }

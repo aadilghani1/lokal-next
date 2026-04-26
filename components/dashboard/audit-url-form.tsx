@@ -2,23 +2,36 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { auditUrlFormSchema, type AuditUrlFormInput } from "@/domains/profile";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { MagnifyingGlass, ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import { MagnifyingGlass, ArrowRight, CircleNotch, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 
 export function AuditUrlForm() {
-  const [url, setUrl] = useState("");
   const router = useRouter();
+  const [isNavigating, setIsNavigating] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!url.trim()) return;
-    router.push(`/dashboard/audit?url=${encodeURIComponent(url.trim())}`);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<AuditUrlFormInput>({
+    resolver: zodResolver(auditUrlFormSchema),
+    defaultValues: { url: "" },
+  });
+
+  function onSubmit(data: AuditUrlFormInput) {
+    setIsNavigating(true);
+    router.push(`/dashboard/audit/${encodeURIComponent(data.url)}`);
   }
 
+  const isLoading = isNavigating;
+
   return (
-    <Card className="shadow-[var(--shadow-surface)]">
+    <Card className="shadow-(--shadow-surface)">
       <CardContent className="py-6">
         <div className="flex items-center gap-4 mb-4">
           <div className="flex size-10 items-center justify-center rounded-xl bg-primary/8">
@@ -31,19 +44,43 @@ export function AuditUrlForm() {
             </span>
           </div>
         </div>
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://www.google.com/maps/place/Your+Business..."
-            required
-            className="flex-1"
-          />
-          <Button type="submit" size="sm" className="gap-1.5 shrink-0">
-            Audit
-            <ArrowRight className="size-3.5" weight="bold" />
-          </Button>
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Input
+                {...register("url")}
+                type="url"
+                placeholder="https://www.google.com/maps/place/Your+Business..."
+                disabled={isLoading}
+                aria-invalid={!!errors.url}
+                className={errors.url ? "border-destructive focus-visible:ring-destructive" : ""}
+              />
+            </div>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={isLoading}
+              className="gap-1.5 shrink-0"
+            >
+              {isLoading ? (
+                <>
+                  <CircleNotch className="size-3.5 animate-spin" weight="bold" />
+                  Loading
+                </>
+              ) : (
+                <>
+                  Audit
+                  <ArrowRight className="size-3.5" weight="bold" />
+                </>
+              )}
+            </Button>
+          </div>
+          {errors.url && (
+            <div className="flex items-center gap-1.5 text-destructive">
+              <WarningCircle className="size-3.5 shrink-0" weight="bold" />
+              <span className="text-xs">{errors.url.message}</span>
+            </div>
+          )}
         </form>
       </CardContent>
     </Card>
