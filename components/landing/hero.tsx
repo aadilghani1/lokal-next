@@ -14,7 +14,7 @@ export function Hero() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    router.push(`/dashboard/audit/${encodeURIComponent(url)}`);
+    router.push(`/dashboard/audit?url=${encodeURIComponent(url)}`);
   }
 
   return (
@@ -31,7 +31,7 @@ export function Hero() {
             <span className="text-foreground/70">Then <mark className="bg-primary/15 text-primary px-1 -mx-1 rounded-lg decoration-0">outrank them.</mark></span>
           </h1>
           <p className="mx-auto max-w-md text-sm font-light text-foreground/70 leading-relaxed text-balance sm:max-w-lg sm:text-[15px]">
-            Paste your Google Business Profile link. Get an instant audit, see
+            Paste your Google Maps link. Get an instant audit, see
             your top 5 competitors, and generate blog content to climb the
             local rankings.
           </p>

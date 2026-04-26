@@ -11,7 +11,7 @@ export const gbpUrlSchema = z
   .url("Please enter a valid URL")
   .refine(
     (url) => GBP_URL_PATTERNS.some((pattern) => pattern.test(url)),
-    "Please enter a valid Google Business Profile URL"
+    "Please enter a valid Google Maps URL"
   );
 
 export const auditUrlFormSchema = z.object({

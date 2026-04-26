@@ -69,7 +69,7 @@ const SCORING_RULES: ScoringRule[] = [
       }
     },
     suggest: () => [
-      "Add your website URL to your Google Business Profile",
+      "Add your website URL to your Google Maps listing",
       "A website helps you rank in local search",
     ],
   },
@@ -80,7 +80,7 @@ const DEFAULT_CATEGORIES: AuditCategory[] = [
     name: "Reviews",
     score: 0,
     maxScore: 100,
-    suggestions: ["Add your Google Business Profile to get started"],
+    suggestions: ["Add your Google Maps listing to get started"],
   },
   {
     name: "Rating",

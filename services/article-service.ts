@@ -25,6 +25,7 @@ function rowToArticle(row: typeof articles.$inferSelect): BlogArticle {
     clusterKeywords: (row.clusterKeywords as string[]) ?? null,
     searchVolume: row.searchVolume,
     keywordDifficulty: row.keywordDifficulty,
+    metaDescription: row.metaDescription ?? null,
     schemaJsonld: (row.schemaJsonld as Record<string, unknown>[]) ?? null,
     status: row.status as BlogArticle["status"],
     createdAt: row.createdAt,
@@ -163,6 +164,7 @@ interface CreateArticleInput {
   clusterKeywords?: string[];
   searchVolume?: number;
   keywordDifficulty?: number;
+  metaDescription?: string;
   schemaJsonld?: Record<string, unknown>[];
   embedding?: number[];
 }
@@ -184,6 +186,7 @@ export async function createArticle(
       clusterKeywords: input.clusterKeywords,
       searchVolume: input.searchVolume,
       keywordDifficulty: input.keywordDifficulty,
+      metaDescription: input.metaDescription,
       schemaJsonld: input.schemaJsonld,
       status: "draft",
     })
@@ -196,6 +199,7 @@ export async function createArticle(
         clusterKeywords: input.clusterKeywords,
         searchVolume: input.searchVolume,
         keywordDifficulty: input.keywordDifficulty,
+        metaDescription: input.metaDescription,
         schemaJsonld: input.schemaJsonld,
         status: "draft" as const,
       },
@@ -280,6 +284,30 @@ export async function getAllArticles(): Promise<BlogArticle[]> {
     .from(articles)
     .orderBy(desc(articles.createdAt));
   return rows.map(rowToArticle);
+}
+
+export async function getArticlesPaginated(
+  page: number,
+  perPage: number,
+): Promise<{ articles: BlogArticle[]; total: number }> {
+  const offset = (page - 1) * perPage;
+
+  const [rows, countResult] = await Promise.all([
+    db
+      .select()
+      .from(articles)
+      .orderBy(desc(articles.createdAt))
+      .limit(perPage)
+      .offset(offset),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(articles),
+  ]);
+
+  return {
+    articles: rows.map(rowToArticle),
+    total: countResult[0]?.count ?? 0,
+  };
 }
 
 interface SimilarArticle {

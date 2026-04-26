@@ -70,6 +70,7 @@ export async function ensureDataFromBackend(
           parsed.data.target_keyword,
           ...parsed.data.supporting_keywords,
         ],
+        metaDescription: parsed.data.meta_description || undefined,
         schemaJsonld: parsed.data.schema_jsonld,
       });
     }

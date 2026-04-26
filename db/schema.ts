@@ -85,6 +85,7 @@ export const articles = pgTable(
     clusterKeywords: jsonb("cluster_keywords"),
     searchVolume: integer("search_volume"),
     keywordDifficulty: integer("keyword_difficulty"),
+    metaDescription: text("meta_description"),
     schemaJsonld: jsonb("schema_jsonld"),
     status: text("status", { enum: ["draft", "generating", "published", "failed"] })
       .notNull()

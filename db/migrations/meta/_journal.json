@@ -43,6 +43,13 @@
       "when": 1777156612022,
       "tag": "0005_flowery_jazinda",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1777195129214,
+      "tag": "0006_broad_zeigeist",
+      "breakpoints": true
     }
   ]
 }

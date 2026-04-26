@@ -1,6 +1,39 @@
+import type { Metadata } from "next";
 import { getArticlesByTenant } from "@/services/article-service";
+import { getProfileBySlug } from "@/services/profile-service";
 import { LogoMark } from "@/components/logo";
 import { formatDate } from "@/lib/format-date";
+import { getBlogHomeUrl, getBlogFeedUrl, getBlogArticleUrl } from "@/lib/blog-url";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ tenant: string }>;
+}): Promise<Metadata> {
+  const { tenant } = await params;
+  const profile = await getProfileBySlug(tenant);
+  const name = profile?.name ?? tenant;
+  const description = `Local SEO articles and insights from ${name}. Tips to improve your Google Maps ranking and outrank competitors.`;
+
+  return {
+    title: `${name} Blog — Local SEO Articles`,
+    description,
+    alternates: {
+      canonical: getBlogHomeUrl(tenant),
+      types: {
+        "application/rss+xml": [
+          { url: getBlogFeedUrl(tenant), title: `${name} Blog RSS Feed` },
+        ],
+      },
+    },
+    openGraph: {
+      title: `${name} Blog`,
+      description,
+      type: "website",
+      url: getBlogHomeUrl(tenant),
+    },
+  };
+}
 
 export default async function BlogIndexPage({
   params,
@@ -33,15 +66,22 @@ export default async function BlogIndexPage({
             {articles.map((article) => (
               <a
                 key={article.id}
-                href={`/blog/${tenant}/${article.slug}`}
+                href={getBlogArticleUrl(tenant, article.slug)}
                 className="group flex flex-col gap-2 rounded-lg border border-border p-5 transition-colors hover:border-primary/30 hover:bg-accent/30"
               >
                 <h2 className="text-base font-semibold group-hover:text-primary transition-colors">
                   {article.title}
                 </h2>
+                {article.metaDescription && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {article.metaDescription}
+                  </p>
+                )}
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {article.publishedAt && (
-                    <time>{formatDate(article.publishedAt)}</time>
+                    <time dateTime={article.publishedAt.toISOString()}>
+                      {formatDate(article.publishedAt)}
+                    </time>
                   )}
                   <span>&middot;</span>
                   <span>5 min read</span>

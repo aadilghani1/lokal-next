@@ -13,6 +13,7 @@ export interface BlogArticle {
   clusterKeywords: string[] | null;
   searchVolume: number | null;
   keywordDifficulty: number | null;
+  metaDescription: string | null;
   schemaJsonld: Record<string, unknown>[] | null;
   status: ArticleStatus;
   createdAt: Date;

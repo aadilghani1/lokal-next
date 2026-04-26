@@ -22,7 +22,7 @@ const spaceMono = Space_Mono({
 
 export const metadata: Metadata = {
   title: "Lokal",
-  description: "Audit your Google Business Profile. Outrank your competitors.",
+  description: "Audit your Google Maps listing. Outrank your competitors.",
 };
 
 export default function RootLayout({

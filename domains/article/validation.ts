@@ -18,13 +18,13 @@ export const rankBetterRequestSchema = z.object({
     .max(50)
     .regex(/^[a-z0-9-]*$/)
     .default("business"),
-  profileId: z.string().uuid().optional(),
-  competitorUrls: z.array(z.string().url()).optional(),
-  businessName: z.string().max(200).optional(),
-  businessCategory: z.string().max(100).optional(),
-  businessLocation: z.string().max(200).optional(),
-  businessRating: z.number().min(0).max(5).optional(),
-  businessReviewCount: z.number().int().min(0).optional(),
+  profileId: z.string().uuid().nullable().optional(),
+  competitorUrls: z.array(z.string().url()).nullable().optional(),
+  businessName: z.string().max(200).nullable().optional(),
+  businessCategory: z.string().max(100).nullable().optional(),
+  businessLocation: z.string().max(200).nullable().optional(),
+  businessRating: z.number().min(0).max(5).nullable().optional(),
+  businessReviewCount: z.number().int().min(0).nullable().optional(),
 });
 
 export type RankBetterRequest = z.infer<typeof rankBetterRequestSchema>;

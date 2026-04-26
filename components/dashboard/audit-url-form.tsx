@@ -25,7 +25,7 @@ export function AuditUrlForm() {
 
   function onSubmit(data: AuditUrlFormInput) {
     setIsNavigating(true);
-    router.push(`/dashboard/audit/${encodeURIComponent(data.url)}`);
+    router.push(`/dashboard/audit?url=${encodeURIComponent(data.url)}`);
   }
 
   const isLoading = isNavigating;
@@ -40,7 +40,7 @@ export function AuditUrlForm() {
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium">Run an audit</span>
             <span className="text-xs text-muted-foreground">
-              Paste a Google Business Profile URL to get started.
+              Paste a Google Maps URL to get started.
             </span>
           </div>
         </div>

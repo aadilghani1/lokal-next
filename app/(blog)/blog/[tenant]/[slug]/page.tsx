@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getArticle, getSimilarArticles } from "@/services/article-service";
@@ -6,11 +7,87 @@ import { markdownToHtml } from "@/lib/markdown";
 import { ArticleRenderer } from "@/components/blog/article-renderer";
 import { LogoMark } from "@/components/logo";
 import { formatDate } from "@/lib/format-date";
+import {
+  getCanonicalArticleUrl,
+  getBlogFeedUrl,
+} from "@/lib/blog-url";
+import { mergeSchemaJsonld } from "@/lib/schema-jsonld";
+
+type Params = Promise<{ tenant: string; slug: string }>;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Params;
+}): Promise<Metadata> {
+  const { tenant, slug } = await params;
+  const article = await getArticle(tenant, slug);
+  if (!article) return {};
+
+  const profile = await getProfileBySlug(tenant);
+  const authorName = profile?.name ?? tenant;
+  const canonical = getCanonicalArticleUrl(tenant, slug);
+
+  const description =
+    article.metaDescription ||
+    article.markdownContent
+      .replace(/[#*_\[\]()>`~|]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 160);
+
+  const photoRefs = (profile?.photoRefs as string[]) ?? [];
+  const ogImage =
+    photoRefs.length > 0 ? `/api/photos?ref=${photoRefs[0]}` : undefined;
+
+  return {
+    title: article.title,
+    description,
+    alternates: {
+      canonical,
+      types: {
+        "application/rss+xml": [
+          {
+            url: getBlogFeedUrl(tenant),
+            title: `${authorName} Blog RSS Feed`,
+          },
+        ],
+      },
+    },
+    openGraph: {
+      title: article.title,
+      description,
+      type: "article",
+      url: canonical,
+      publishedTime: (
+        article.publishedAt ?? article.createdAt
+      ).toISOString(),
+      authors: [authorName],
+      ...(ogImage && { images: [{ url: ogImage, alt: article.title }] }),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: article.title,
+      description,
+      ...(ogImage && { images: [ogImage] }),
+    },
+    other: {
+      "citation_title": article.title,
+      "citation_author": authorName,
+      "citation_date": (
+        article.publishedAt ?? article.createdAt
+      )
+        .toISOString()
+        .split("T")[0],
+      "citation_public_url": canonical,
+    },
+  };
+}
 
 export default async function BlogArticlePage({
   params,
 }: {
-  params: Promise<{ tenant: string; slug: string }>;
+  params: Params;
 }) {
   const { tenant, slug } = await params;
   const article = await getArticle(tenant, slug);
@@ -21,22 +98,28 @@ export default async function BlogArticlePage({
 
   const profile = await getProfileBySlug(tenant);
   const photoRefs = (profile?.photoRefs as string[]) ?? [];
+  const authorName = profile?.name ?? tenant;
 
   const htmlContent = markdownToHtml(article.markdownContent);
 
+  const schemas = mergeSchemaJsonld(
+    article.schemaJsonld,
+    article,
+    profile ? { name: profile.name, category: profile.category, location: profile.location } : null,
+  );
+
+  const publishedIso = (article.publishedAt ?? article.createdAt).toISOString();
+
   return (
     <>
-      {article.schemaJsonld && article.schemaJsonld.length > 0 && (
-        <>
-          {article.schemaJsonld.map((schema, i) => (
-            <script
-              key={i}
-              type="application/ld+json"
-              dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-            />
-          ))}
-        </>
-      )}
+      {schemas.map((schema, i) => (
+        <script
+          key={i}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+      ))}
+
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2.5">
@@ -54,64 +137,115 @@ export default async function BlogArticlePage({
           </nav>
         </div>
       </header>
+
       <main className="mx-auto max-w-3xl px-6 py-14">
-        <div className="flex flex-col gap-5 pb-8 border-b border-border mb-10">
-          <div className="flex items-center gap-2 text-xs">
-            <span className="font-semibold uppercase tracking-wider text-primary">
-              Local SEO
-            </span>
-            <span className="text-muted-foreground">&middot;</span>
-            <span className="text-muted-foreground">5 min read</span>
-          </div>
-          <h1 className="font-heading text-3xl font-extrabold tracking-tight leading-tight sm:text-4xl">
-            {article.title}
-          </h1>
-          <div className="flex items-center gap-2.5">
-            <div className="size-8 rounded-full bg-accent flex items-center justify-center">
-              <span className="text-xs font-semibold text-accent-foreground">
-                {tenant.slice(0, 2).toUpperCase()}
+        <article itemScope itemType="https://schema.org/BlogPosting">
+          <div className="flex flex-col gap-5 pb-8 border-b border-border mb-10">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-semibold uppercase tracking-wider text-primary">
+                Local SEO
               </span>
+              <span className="text-muted-foreground">&middot;</span>
+              <span className="text-muted-foreground">5 min read</span>
             </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-medium">{tenant}</span>
-              <span className="text-xs text-muted-foreground">
-                {article.publishedAt ? formatDate(article.publishedAt) : "Draft"}
-              </span>
+
+            <h1
+              className="font-heading text-3xl font-extrabold tracking-tight leading-tight sm:text-4xl"
+              data-speakable-headline=""
+              itemProp="headline"
+            >
+              {article.title}
+            </h1>
+
+            {article.metaDescription && (
+              <p
+                className="text-base text-muted-foreground leading-relaxed"
+                data-speakable-summary=""
+                itemProp="description"
+              >
+                {article.metaDescription}
+              </p>
+            )}
+
+            <div
+              className="flex items-center gap-2.5"
+              itemProp="author"
+              itemScope
+              itemType="https://schema.org/Organization"
+            >
+              <div className="size-8 rounded-full bg-accent flex items-center justify-center">
+                <span className="text-xs font-semibold text-accent-foreground">
+                  {tenant.slice(0, 2).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium" itemProp="name">
+                  {authorName}
+                </span>
+                <time
+                  dateTime={publishedIso}
+                  itemProp="datePublished"
+                  className="text-xs text-muted-foreground"
+                >
+                  {article.publishedAt
+                    ? formatDate(article.publishedAt)
+                    : "Draft"}
+                </time>
+              </div>
             </div>
           </div>
-        </div>
-        {photoRefs.length > 0 && (
-          <div className="mb-10 -mx-2 overflow-hidden rounded-xl">
-            <img
-              src={`/api/photos?ref=${photoRefs[0]}`}
-              alt={article.title}
-              className="w-full h-64 object-cover rounded-xl"
-              loading="eager"
-            />
-          </div>
-        )}
-        <ArticleRenderer htmlContent={htmlContent} />
-        {photoRefs.length > 1 && (
-          <div className="mt-12 grid grid-cols-2 gap-3">
-            {photoRefs.slice(1, 5).map((ref, i) => (
+
+          {photoRefs.length > 0 && (
+            <div className="mb-10 -mx-2 overflow-hidden rounded-xl">
               <img
-                key={i}
-                src={`/api/photos?ref=${ref}`}
-                alt={`${article.title} - Photo ${i + 2}`}
-                className="w-full h-40 object-cover rounded-lg"
-                loading="lazy"
+                src={`/api/photos?ref=${photoRefs[0]}`}
+                alt={article.title}
+                className="w-full h-64 object-cover rounded-xl"
+                loading="eager"
+                itemProp="image"
               />
-            ))}
+            </div>
+          )}
+
+          <div itemProp="articleBody">
+            <ArticleRenderer htmlContent={htmlContent} />
           </div>
-        )}
-        <RelatedArticles articleId={article.id} tenant={tenant} />
+
+          {photoRefs.length > 1 && (
+            <div className="mt-12 grid grid-cols-2 gap-3">
+              {photoRefs.slice(1, 5).map((ref, i) => (
+                <img
+                  key={i}
+                  src={`/api/photos?ref=${ref}`}
+                  alt={`${article.title} - Photo ${i + 2}`}
+                  className="w-full h-40 object-cover rounded-lg"
+                  loading="lazy"
+                />
+              ))}
+            </div>
+          )}
+
+          <meta itemProp="dateModified" content={publishedIso} />
+        </article>
+
+        <RelatedArticles articleId={article.id} />
       </main>
     </>
   );
 }
 
-async function RelatedArticles({ articleId, tenant }: { articleId: string; tenant: string }) {
-  let similar: { id: string; title: string; tenantSlug: string; slug: string; similarity: number }[] = [];
+async function RelatedArticles({
+  articleId,
+}: {
+  articleId: string;
+}) {
+  let similar: {
+    id: string;
+    title: string;
+    tenantSlug: string;
+    slug: string;
+    similarity: number;
+  }[] = [];
   try {
     similar = await getSimilarArticles(articleId, 3);
   } catch {}
@@ -119,8 +253,10 @@ async function RelatedArticles({ articleId, tenant }: { articleId: string; tenan
   if (similar.length === 0) return null;
 
   return (
-    <div className="mt-16 pt-10 border-t border-border">
-      <h3 className="font-heading text-lg font-semibold mb-4">Related Articles</h3>
+    <nav className="mt-16 pt-10 border-t border-border" aria-label="Related articles">
+      <h3 className="font-heading text-lg font-semibold mb-4">
+        Related Articles
+      </h3>
       <div className="grid gap-3">
         {similar.map((s) => (
           <Link
@@ -135,6 +271,6 @@ async function RelatedArticles({ articleId, tenant }: { articleId: string; tenan
           </Link>
         ))}
       </div>
-    </div>
+    </nav>
   );
 }

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { SquaresFour, MagnifyingGlass, FileText } from "@phosphor-icons/react/dist/ssr";
 import { LogoMark } from "@/components/logo";
 import { NavUser } from "@/components/nav-user";
-import { SearchForm } from "@/components/search-form";
 import {
   Sidebar,
   SidebarContent,
