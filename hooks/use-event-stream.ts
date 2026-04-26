@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 export type SSEEvent =
   | { event: "connected"; data: { job_id: string } }
   | { event: "stage"; data: { stage: string; detail: string | null } }
-  | { event: "tool_call"; data: { name: string; input: Record<string, unknown>; output_preview: string } }
+  | { event: "tool_call"; data: { name: string; input: Record<string, unknown>; output_preview: string; output_parsed?: unknown[] | Record<string, unknown> | null } }
   | { event: "thinking"; data: { text: string } }
   | { event: "text"; data: { chunk: string } }
   | { event: "article"; data: { cluster_id: number; target_keyword: string; meta_title: string; content_type: string } }

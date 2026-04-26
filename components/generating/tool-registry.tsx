@@ -6,53 +6,65 @@ interface ToolUIProps {
   name: string;
   input: Record<string, unknown>;
   output_preview: string;
+  output_parsed?: unknown[] | Record<string, unknown> | null;
 }
 
 type ToolRenderer = (props: ToolUIProps) => ReactNode;
 
-function parseSerpResults(preview: string): { rank: number; title: string; domain: string }[] {
+function toArray(data: unknown): Record<string, unknown>[] {
+  if (Array.isArray(data)) return data as Record<string, unknown>[];
+  return [];
+}
+
+function parseSerpResults(props: ToolUIProps): { rank: number; title: string; domain: string }[] {
+  const arr = toArray(props.output_parsed);
+  if (arr.length > 0) {
+    return arr.slice(0, 4).map((r) => ({
+      rank: (r.rank as number) ?? 0,
+      title: String(r.title ?? "").slice(0, 60),
+      domain: String(r.domain ?? ""),
+    }));
+  }
   try {
-    const parsed = JSON.parse(preview);
-    if (Array.isArray(parsed)) {
-      return parsed.slice(0, 4).map((r) => ({
-        rank: r.rank ?? 0,
-        title: (r.title ?? "").slice(0, 60),
-        domain: r.domain ?? "",
-      }));
-    }
+    const parsed = JSON.parse(props.output_preview);
+    if (Array.isArray(parsed)) return parsed.slice(0, 4).map((r: Record<string, unknown>) => ({ rank: (r.rank as number) ?? 0, title: String(r.title ?? "").slice(0, 60), domain: String(r.domain ?? "") }));
   } catch {}
   return [];
 }
 
-function parseKeywordResults(preview: string): { keyword: string; volume: number }[] {
+function parseKeywordResults(props: ToolUIProps): { keyword: string; volume: number }[] {
+  const arr = toArray(props.output_parsed);
+  if (arr.length > 0) {
+    return arr.slice(0, 5).map((r) => ({
+      keyword: String(r.keyword ?? ""),
+      volume: (r.search_volume as number) ?? 0,
+    }));
+  }
   try {
-    const parsed = JSON.parse(preview);
-    if (Array.isArray(parsed)) {
-      return parsed.slice(0, 5).map((r) => ({
-        keyword: r.keyword ?? "",
-        volume: r.search_volume ?? 0,
-      }));
-    }
+    const parsed = JSON.parse(props.output_preview);
+    if (Array.isArray(parsed)) return parsed.slice(0, 5).map((r: Record<string, unknown>) => ({ keyword: String(r.keyword ?? ""), volume: (r.search_volume as number) ?? 0 }));
   } catch {}
   return [];
 }
 
-function parseSearchResults(preview: string): { title: string; url: string }[] {
+function parseSearchResults(props: ToolUIProps): { title: string; url: string }[] {
+  const arr = toArray(props.output_parsed);
+  if (arr.length > 0) {
+    return arr.slice(0, 3).map((r) => ({
+      title: String(r.title ?? "").slice(0, 50),
+      url: String(r.url ?? ""),
+    }));
+  }
   try {
-    const parsed = JSON.parse(preview);
-    if (Array.isArray(parsed)) {
-      return parsed.slice(0, 3).map((r) => ({
-        title: (r.title ?? "").slice(0, 50),
-        url: r.url ?? "",
-      }));
-    }
+    const parsed = JSON.parse(props.output_preview);
+    if (Array.isArray(parsed)) return parsed.slice(0, 3).map((r: Record<string, unknown>) => ({ title: String(r.title ?? "").slice(0, 50), url: String(r.url ?? "") }));
   } catch {}
   return [];
 }
 
-function KeywordSerpUI({ input, output_preview }: ToolUIProps) {
-  const keyword = String(input.keyword ?? "");
-  const results = parseSerpResults(output_preview);
+function KeywordSerpUI(props: ToolUIProps) {
+  const keyword = String(props.input.keyword ?? "");
+  const results = parseSerpResults(props);
 
   return (
     <div className="rounded-lg overflow-hidden border border-border/50">
@@ -75,16 +87,16 @@ function KeywordSerpUI({ input, output_preview }: ToolUIProps) {
         </div>
       ) : (
         <div className="px-4 py-3">
-          <p className="text-[11px] text-muted-foreground/50 font-mono line-clamp-2">{output_preview}</p>
+          <p className="text-[11px] text-muted-foreground/50 font-mono line-clamp-2">{props.output_preview}</p>
         </div>
       )}
     </div>
   );
 }
 
-function KeywordResearchUI({ input, output_preview }: ToolUIProps) {
-  const seeds = (input.keywords as string[]) ?? [];
-  const results = parseKeywordResults(output_preview);
+function KeywordResearchUI(props: ToolUIProps) {
+  const seeds = (props.input.keywords as string[]) ?? [];
+  const results = parseKeywordResults(props);
 
   return (
     <div className="rounded-lg overflow-hidden border border-border/50">
@@ -111,16 +123,16 @@ function KeywordResearchUI({ input, output_preview }: ToolUIProps) {
         </div>
       ) : (
         <div className="px-4 py-3">
-          <p className="text-[11px] text-muted-foreground/50 font-mono line-clamp-2">{output_preview}</p>
+          <p className="text-[11px] text-muted-foreground/50 font-mono line-clamp-2">{props.output_preview}</p>
         </div>
       )}
     </div>
   );
 }
 
-function TavilySearchUI({ input, output_preview }: ToolUIProps) {
-  const query = String(input.query ?? "");
-  const results = parseSearchResults(output_preview);
+function TavilySearchUI(props: ToolUIProps) {
+  const query = String(props.input.query ?? "");
+  const results = parseSearchResults(props);
 
   return (
     <div className="rounded-lg overflow-hidden border border-border/50">
@@ -140,22 +152,22 @@ function TavilySearchUI({ input, output_preview }: ToolUIProps) {
         </div>
       ) : (
         <div className="px-4 py-3">
-          <p className="text-[11px] text-muted-foreground/50 font-mono line-clamp-2">{output_preview}</p>
+          <p className="text-[11px] text-muted-foreground/50 font-mono line-clamp-2">{props.output_preview}</p>
         </div>
       )}
     </div>
   );
 }
 
-function DefaultToolUI({ name, input, output_preview }: ToolUIProps) {
+function DefaultToolUI(props: ToolUIProps) {
   return (
     <div className="rounded-lg border border-border/50 overflow-hidden">
       <div className="px-4 py-2.5 bg-muted/30 border-b border-border/30">
-        <code className="font-mono text-[11px]">{name}</code>
+        <code className="font-mono text-[11px]">{props.name}</code>
       </div>
       <div className="px-4 py-3">
         <p className="text-[11px] text-muted-foreground/50 font-mono leading-relaxed line-clamp-2">
-          {output_preview || JSON.stringify(input).slice(0, 150)}
+          {props.output_preview || JSON.stringify(props.input).slice(0, 150)}
         </p>
       </div>
     </div>

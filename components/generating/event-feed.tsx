@@ -31,10 +31,10 @@ function StageEvent({ stage, detail }: { stage: string; detail: string | null })
   );
 }
 
-function ToolCallEvent({ name, input, output_preview }: { name: string; input: Record<string, unknown>; output_preview: string }) {
+function ToolCallEvent({ name, input, output_preview, output_parsed }: { name: string; input: Record<string, unknown>; output_preview: string; output_parsed?: unknown[] | Record<string, unknown> | null }) {
   return (
     <div className="ml-4">
-      <ToolUI name={name} input={input} output_preview={output_preview} />
+      <ToolUI name={name} input={input} output_preview={output_preview} output_parsed={output_parsed} />
     </div>
   );
 }
