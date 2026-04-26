@@ -8,6 +8,11 @@ const isPublicRoute = createRouteMatcher([
   "/blog(.*)",
   "/api/webhooks(.*)",
   "/api/photos(.*)",
+  "/sitemap.xml",
+  "/robots.txt",
+  "/feed.xml",
+  "/llms.txt",
+  "/llms-full.txt",
 ]);
 
 const TENANT_SEO_ROUTES: Record<string, (tenant: string) => string> = {
@@ -19,14 +24,14 @@ const TENANT_SEO_ROUTES: Record<string, (tenant: string) => string> = {
 };
 
 function extractTenant(hostname: string): string | null {
-  const blogDomain = process.env.BLOG_DOMAIN;
+  const blogDomain =
+    process.env.BLOG_DOMAIN ?? process.env.NEXT_PUBLIC_BLOG_DOMAIN;
 
   if (blogDomain) {
     if (!hostname.endsWith(blogDomain) || hostname === blogDomain) return null;
     return hostname.replace(`.${blogDomain}`, "");
   }
 
-  // Local dev: match {tenant}.localhost or {tenant}.localhost:PORT
   const localMatch = hostname.match(/^([^.]+)\.localhost(:\d+)?$/);
   if (localMatch) return localMatch[1];
 
@@ -45,15 +50,32 @@ function handleBlogRewrite(request: NextRequest): NextResponse | null {
     return NextResponse.rewrite(new URL(seoRewrite(tenant), request.url));
   }
 
-  const pathSegments = pathname.split("/").filter(Boolean);
-
-  if (pathSegments[0] === "article" && pathSegments[1]) {
-    return NextResponse.rewrite(
-      new URL(`/blog/${tenant}/${pathSegments[1]}`, request.url)
-    );
+  // /blog/* paths: let Next.js handle them directly (internal route exists)
+  if (pathname.startsWith("/blog/")) {
+    return NextResponse.next();
   }
 
-  return NextResponse.rewrite(new URL(`/blog/${tenant}`, request.url));
+  if (pathname.startsWith("/article/")) {
+    const slug = pathname.slice("/article/".length).split("/")[0];
+    if (slug) {
+      return NextResponse.rewrite(
+        new URL(`/blog/${tenant}/${slug}`, request.url),
+      );
+    }
+  }
+
+  // /api/* paths: pass through (e.g. /api/photos for images)
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
+
+  // Root and any unrecognized path → blog index
+  if (pathname === "/" || pathname === "") {
+    return NextResponse.rewrite(new URL(`/blog/${tenant}`, request.url));
+  }
+
+  // Unknown subdomain paths → 404 via Next.js (don't silently show index)
+  return NextResponse.next();
 }
 
 export default clerkMiddleware(async (auth, request) => {

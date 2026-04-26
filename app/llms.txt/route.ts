@@ -1,9 +1,27 @@
-import { getBaseUrl } from "@/lib/blog-url";
+import { db } from "@/db";
+import { articles } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { getBaseUrl, getTenantBaseUrl } from "@/lib/blog-url";
 
 export const revalidate = 3600;
 
 export async function GET() {
   const base = getBaseUrl();
+  const domain = base.replace(/^https?:\/\//, "");
+
+  const tenants = await db
+    .selectDistinct({ tenantSlug: articles.tenantSlug })
+    .from(articles)
+    .where(eq(articles.status, "published"));
+
+  const tenantList =
+    tenants.length > 0
+      ? tenants
+          .map(
+            (t) => `- ${t.tenantSlug}: ${getTenantBaseUrl(t.tenantSlug)}`,
+          )
+          .join("\n")
+      : "- No published blogs yet";
 
   const body = `# Lokal
 
@@ -16,11 +34,15 @@ export async function GET() {
 - Competitor analysis with keyword gap insights
 - Topic cluster strategies based on search volume and difficulty
 
-## Blog
+## Tenant blogs
 
-Each business gets its own subdomain: {tenant-slug}.${base.replace(/^https?:\/\//, "")}
-Articles live at: {tenant-slug}.${base.replace(/^https?:\/\//, "")}/article/{article-slug}
-Each tenant subdomain also has its own /llms.txt, /sitemap.xml, /robots.txt, and /feed.xml
+Each business gets its own subdomain on ${domain}:
+
+${tenantList}
+
+Each tenant subdomain has /llms.txt, /sitemap.xml, /robots.txt, and /feed.xml
+
+## Article format
 
 Each article includes:
 - Structured data (JSON-LD BlogPosting + LocalBusiness)

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { getAllArticles, getProcessingJobs } from "@/services/article-service";
 import { getCurrentUser } from "@/services/user-service";
 import { AuditUrlForm } from "@/components/dashboard/audit-url-form";
+import { IntentModelCard } from "@/components/dashboard/intent-model-card";
 import { CircleNotch, ArrowRight } from "@phosphor-icons/react/dist/ssr";
 
 export default async function DashboardOverviewPage() {
@@ -19,6 +20,8 @@ export default async function DashboardOverviewPage() {
       <DashboardHeader segments={[{ label: "Overview" }]} />
       <div className="flex flex-1 flex-col gap-6 p-8">
         <AuditUrlForm />
+
+        <IntentModelCard />
 
         {processingJobs.length > 0 && (
           <div className="flex flex-col gap-3">

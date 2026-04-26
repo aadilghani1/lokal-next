@@ -1,5 +1,7 @@
 import { getTenantBaseUrl } from "@/lib/blog-url";
 
+export const revalidate = 86400;
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ tenant: string }> },

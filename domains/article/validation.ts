@@ -72,8 +72,8 @@ export const backendArticleSchema = z.object({
   content_type: z.string().default(""),
   competitive_angle: z.string().default(""),
   article_markdown: z.string().min(1),
-  schema_jsonld: z.array(z.record(z.string(), z.unknown())).optional(),
-  embedding: z.array(z.number()).optional(),
+  schema_jsonld: z.array(z.record(z.string(), z.unknown())).nullish(),
+  embedding: z.array(z.number()).nullish(),
 });
 
 export type BackendArticle = z.infer<typeof backendArticleSchema>;

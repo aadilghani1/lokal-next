@@ -24,6 +24,7 @@ import {
   TrendUp,
   Article as ArticleIcon,
 } from "@phosphor-icons/react/dist/ssr";
+import { KeywordIntentBreakdown } from "@/components/dashboard/keyword-intent-breakdown";
 
 function StatCard({
   icon: Icon,
@@ -186,6 +187,8 @@ export default async function ResultsPage({
             </div>
           </div>
         )}
+
+        <KeywordIntentBreakdown jobId={jobId} />
 
         {contentJob.topicClusters.length > 0 && (
           <Card className="shadow-(--shadow-surface)">

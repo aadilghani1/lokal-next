@@ -56,6 +56,12 @@ export interface TopicClusterResult {
   opportunity_score: number;
 }
 
+export interface KeywordIntent {
+  intent: string;
+  weight: number;
+  search_volume?: number;
+}
+
 export interface BackendResponse {
   status: string;
   business?: { name?: string; category?: string; location?: string };
@@ -63,6 +69,7 @@ export interface BackendResponse {
   topic_clusters?: Record<string, unknown>[];
   total_keywords_found?: number;
   total_clusters?: number;
+  keyword_intents?: Record<string, KeywordIntent>;
   progress?: { stages?: { stage: string; detail: string | null }[] };
   content?: {
     articles?: Record<string, unknown>[];

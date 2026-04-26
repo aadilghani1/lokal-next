@@ -3,7 +3,7 @@ import { getArticlesByTenant } from "@/services/article-service";
 import { getProfileBySlug } from "@/services/profile-service";
 import { LogoMark } from "@/components/logo";
 import { formatDate } from "@/lib/format-date";
-import { getBlogHomeUrl, getBlogFeedUrl, getBlogArticleUrl } from "@/lib/blog-url";
+import { getBlogHomeUrl, getBlogFeedUrl } from "@/lib/blog-url";
 
 export async function generateMetadata({
   params,
@@ -42,6 +42,8 @@ export default async function BlogIndexPage({
 }) {
   const { tenant } = await params;
   const articles = await getArticlesByTenant(tenant);
+  const profile = await getProfileBySlug(tenant);
+  const name = profile?.name ?? tenant;
 
   return (
     <>
@@ -49,24 +51,29 @@ export default async function BlogIndexPage({
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2.5">
             <LogoMark className="size-6 text-primary" />
-            <span className="text-sm font-semibold">{tenant} Blog</span>
+            <span className="text-sm font-semibold">{name}</span>
           </div>
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-6 py-14">
-        <h1 className="font-heading text-2xl font-bold tracking-tight mb-8">
+        <h1 className="font-heading text-2xl font-bold tracking-tight mb-2">
           Articles
         </h1>
+        <p className="text-sm text-muted-foreground mb-8">
+          Local SEO insights and guides
+        </p>
         {articles.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No published articles yet.
-          </p>
+          <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
+            <p className="text-sm text-muted-foreground">
+              No published articles yet.
+            </p>
+          </div>
         ) : (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-5">
             {articles.map((article) => (
               <a
                 key={article.id}
-                href={getBlogArticleUrl(tenant, article.slug)}
+                href={`/article/${article.slug}`}
                 className="group flex flex-col gap-2 rounded-lg border border-border p-5 transition-colors hover:border-primary/30 hover:bg-accent/30"
               >
                 <h2 className="text-base font-semibold group-hover:text-primary transition-colors">
@@ -83,8 +90,12 @@ export default async function BlogIndexPage({
                       {formatDate(article.publishedAt)}
                     </time>
                   )}
-                  <span>&middot;</span>
-                  <span>5 min read</span>
+                  {article.clusterKeywords && article.clusterKeywords.length > 0 && (
+                    <>
+                      <span>&middot;</span>
+                      <span>{article.clusterKeywords[0]}</span>
+                    </>
+                  )}
                 </div>
               </a>
             ))}

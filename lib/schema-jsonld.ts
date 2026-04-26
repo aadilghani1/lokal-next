@@ -10,6 +10,7 @@ interface ProfileInfo {
 export function buildArticleSchema(
   article: BlogArticle,
   profile: ProfileInfo | null,
+  imageUrl?: string,
 ): Record<string, unknown> {
   const url = getCanonicalArticleUrl(article.tenantSlug, article.slug);
   const authorName = profile?.name ?? article.tenantSlug;
@@ -18,7 +19,7 @@ export function buildArticleSchema(
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: article.title,
-    description: article.metaDescription ?? undefined,
+    ...(article.metaDescription && { description: article.metaDescription }),
     url,
     mainEntityOfPage: { "@type": "WebPage", "@id": url },
     datePublished: (article.publishedAt ?? article.createdAt).toISOString(),
@@ -32,7 +33,8 @@ export function buildArticleSchema(
       name: "Lokal",
       url: "https://lokal.so",
     },
-    keywords: article.clusterKeywords ?? undefined,
+    ...(article.clusterKeywords && { keywords: article.clusterKeywords }),
+    ...(imageUrl && { image: imageUrl }),
     inLanguage: "en",
     speakable: {
       "@type": "SpeakableSpecification",
@@ -80,6 +82,7 @@ export function mergeSchemaJsonld(
   aiGenerated: Record<string, unknown>[] | null,
   article: BlogArticle,
   profile: ProfileInfo | null,
+  imageUrl?: string,
 ): Record<string, unknown>[] {
   const result: Record<string, unknown>[] = [];
 
@@ -93,7 +96,7 @@ export function mergeSchemaJsonld(
   }
 
   if (!hasType(result, "BlogPosting") && !hasType(result, "Article")) {
-    result.push(buildArticleSchema(article, profile));
+    result.push(buildArticleSchema(article, profile, imageUrl));
   }
 
   if (profile && !hasType(result, "LocalBusiness")) {

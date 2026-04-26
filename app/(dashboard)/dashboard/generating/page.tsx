@@ -15,9 +15,11 @@ import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
 const POLL_INTERVAL = 3000;
 const COMPLETION_POLL_MAX = 30_000;
 
-interface StagePayload {
-  stage: string;
+interface BackendStage {
+  name: string;
+  stage?: string;
   detail: string | null;
+  started_at?: string;
 }
 
 export default function GeneratingPage() {
@@ -46,7 +48,11 @@ export default function GeneratingPage() {
         const data = (await res.json()) as {
           status: string;
           articlesCreated?: boolean;
-          progress?: { stages?: StagePayload[] };
+          progress?: {
+            stages?: BackendStage[];
+            current_stage?: string;
+            current_detail?: string | null;
+          };
         };
 
         if (data.status === "completed" && data.articlesCreated) {
@@ -60,7 +66,7 @@ export default function GeneratingPage() {
         setHydratedEvents(
           data.progress.stages.map((s) => ({
             event: "stage" as const,
-            data: { stage: s.stage, detail: s.detail },
+            data: { stage: s.name ?? s.stage ?? "", detail: s.detail },
           })),
         );
       } catch {}
@@ -115,14 +121,14 @@ export default function GeneratingPage() {
       const data = (await res.json()) as {
         status: string;
         articlesCreated?: boolean;
-        progress?: { stages?: StagePayload[] };
+        progress?: { stages?: BackendStage[] };
       };
 
       if (data.progress?.stages) {
         setHydratedEvents(
           data.progress.stages.map((s) => ({
             event: "stage" as const,
-            data: { stage: s.stage, detail: s.detail },
+            data: { stage: s.name ?? s.stage ?? "", detail: s.detail },
           })),
         );
       }

@@ -71,7 +71,7 @@ export async function ensureDataFromBackend(
           ...parsed.data.supporting_keywords,
         ],
         metaDescription: parsed.data.meta_description || undefined,
-        schemaJsonld: parsed.data.schema_jsonld,
+        schemaJsonld: parsed.data.schema_jsonld ?? undefined,
       });
     }
   }

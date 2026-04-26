@@ -45,7 +45,7 @@ export function AuditUrlForm() {
           </div>
         </div>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-2">
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <div className="flex-1">
               <Input
                 {...register("url")}

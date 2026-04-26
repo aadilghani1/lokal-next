@@ -1,5 +1,3 @@
-"use server";
-
 import type { AuditResult } from "@/services/audit-service";
 import type { AuditContext } from "@/domains/audit";
 import type { User } from "@/domains/user";

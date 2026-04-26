@@ -10,6 +10,7 @@ import { formatDate } from "@/lib/format-date";
 import {
   getCanonicalArticleUrl,
   getBlogFeedUrl,
+  getBaseUrl,
 } from "@/lib/blog-url";
 import { mergeSchemaJsonld } from "@/lib/schema-jsonld";
 
@@ -38,7 +39,9 @@ export async function generateMetadata({
 
   const photoRefs = (profile?.photoRefs as string[]) ?? [];
   const ogImage =
-    photoRefs.length > 0 ? `/api/photos?ref=${photoRefs[0]}` : undefined;
+    photoRefs.length > 0
+      ? `${getBaseUrl()}/api/photos?ref=${photoRefs[0]}`
+      : undefined;
 
   return {
     title: article.title,
@@ -102,10 +105,16 @@ export default async function BlogArticlePage({
 
   const htmlContent = markdownToHtml(article.markdownContent);
 
+  const imageUrl =
+    photoRefs.length > 0
+      ? `${getBaseUrl()}/api/photos?ref=${photoRefs[0]}`
+      : undefined;
+
   const schemas = mergeSchemaJsonld(
     article.schemaJsonld,
     article,
     profile ? { name: profile.name, category: profile.category, location: profile.location } : null,
+    imageUrl,
   );
 
   const publishedIso = (article.publishedAt ?? article.createdAt).toISOString();
@@ -122,18 +131,17 @@ export default async function BlogArticlePage({
 
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2.5">
+          <a href={`/blog/${tenant}`} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
             <LogoMark className="size-6 text-primary" />
-            <span className="text-sm font-semibold">{tenant} Blog</span>
-          </div>
+            <span className="text-sm font-semibold">{authorName}</span>
+          </a>
           <nav className="flex items-center gap-5">
             <a
               href={`/blog/${tenant}`}
-              className="text-sm text-muted-foreground hover:text-foreground"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Home
+              All articles
             </a>
-            <span className="text-sm text-muted-foreground">Articles</span>
           </nav>
         </div>
       </header>
@@ -265,9 +273,6 @@ async function RelatedArticles({
             className="block rounded-lg border border-border/50 px-4 py-3 hover:bg-muted/30 transition-colors"
           >
             <p className="text-sm font-medium">{s.title}</p>
-            <p className="text-[11px] text-muted-foreground/50 mt-0.5 font-mono">
-              {Math.round(s.similarity * 100)}% similar
-            </p>
           </Link>
         ))}
       </div>

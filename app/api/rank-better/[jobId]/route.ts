@@ -86,8 +86,8 @@ export async function GET(
             markdownContent: ba.article_markdown,
             clusterKeywords: [ba.target_keyword, ...ba.supporting_keywords],
             metaDescription: ba.meta_description || undefined,
-            schemaJsonld: ba.schema_jsonld,
-            embedding: ba.embedding,
+            schemaJsonld: ba.schema_jsonld ?? undefined,
+            embedding: ba.embedding ?? undefined,
           });
 
           createdArticles.push({

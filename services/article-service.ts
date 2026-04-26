@@ -246,7 +246,13 @@ export async function getArticle(
   const [row] = await db
     .select()
     .from(articles)
-    .where(and(eq(articles.tenantSlug, tenant), eq(articles.slug, slug)))
+    .where(
+      and(
+        eq(articles.tenantSlug, tenant),
+        eq(articles.slug, slug),
+        eq(articles.status, "published"),
+      ),
+    )
     .limit(1);
 
   return row ? rowToArticle(row) : null;
@@ -263,7 +269,8 @@ export async function getArticlesByTenant(
         eq(articles.tenantSlug, tenantSlug),
         eq(articles.status, "published")
       )
-    );
+    )
+    .orderBy(desc(articles.publishedAt));
   return rows.map(rowToArticle);
 }
 

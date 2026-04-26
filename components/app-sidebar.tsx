@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { SquaresFour, MagnifyingGlass, FileText } from "@phosphor-icons/react/dist/ssr";
+import { SquaresFour, MagnifyingGlass, FileText, Brain } from "@phosphor-icons/react/dist/ssr";
 import { LogoMark } from "@/components/logo";
 import { NavUser } from "@/components/nav-user";
 import {
@@ -37,6 +37,11 @@ const navMain = [
         title: "Articles",
         url: "/dashboard/articles",
         icon: FileText,
+      },
+      {
+        title: "Fine Tuning",
+        url: "/dashboard/fine-tuning",
+        icon: Brain,
       },
     ],
   },
