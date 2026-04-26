@@ -7,7 +7,9 @@ Local business SEO platform. Paste your Google Maps link — get a fully optimiz
 1. **Paste Google Maps URL** — extracts business data via Google Places API
 2. **Audit** — discovers real competitors via SERP analysis, shows your ranking
 3. **Generate** — AI agent researches your market and writes SEO content (streamed via SSE)
-4. **Publish** — live at `{your-business}.lokal0.app` with Schema.org + Google Places photos
+4. **Classify** — every keyword gets an intent label (commercial/transactional/informational/navigational) that weights article prioritization
+5. **Publish** — live at `{your-business}.lokal0.app` with Schema.org + Google Places photos
+6. **Fine-tune** — intent classifications accumulate across all businesses, improving the model over time
 
 ## Partner Technologies
 
@@ -28,6 +30,7 @@ Local business SEO platform. Paste your Google Maps link — get a fully optimiz
 - Google Places photos injected into published articles
 - pgvector similarity search for related articles
 - Pioneer fine-tuning loop that improves with every business analyzed
+- Intent model dashboard: per-job keyword breakdowns + global training status
 - 24h caching on all DataForSEO calls
 
 ## Tech Stack

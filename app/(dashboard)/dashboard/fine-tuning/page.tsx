@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import {
   Brain,
   CircleNotch,
@@ -34,12 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface IntentStatus {
   training_samples: number;
@@ -77,47 +72,35 @@ const INTENT_TEXT_COLORS: Record<string, string> = {
 export default function FineTuningPage() {
   const [status, setStatus] = useState<IntentStatus | null>(null);
   const [loading, setLoading] = useState(true);
-  const [training, setTraining] = useState(false);
-  const [trainResult, setTrainResult] = useState<{
-    status: string;
-    job_id?: string;
-  } | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const fetchStatus = useCallback(async () => {
-    try {
-      const res = await fetch("/api/intent-model");
-      if (!res.ok) throw new Error("Failed to fetch status");
-      setStatus(await res.json());
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [tick, refetch] = useReducer((n: number) => n + 1, 0);
 
   useEffect(() => {
-    fetchStatus();
-    const interval = setInterval(fetchStatus, 30_000);
-    return () => clearInterval(interval);
-  }, [fetchStatus]);
+    const controller = new AbortController();
 
-  async function startTraining() {
-    setTraining(true);
-    setTrainResult(null);
-    try {
-      const res = await fetch("/api/intent-model", { method: "POST" });
-      if (!res.ok) throw new Error("Failed to start training");
-      const data = await res.json();
-      setTrainResult(data);
-      fetchStatus();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Training failed");
-    } finally {
-      setTraining(false);
+    async function poll() {
+      try {
+        const res = await fetch("/api/intent-model", {
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error("Failed to fetch status");
+        setStatus(await res.json());
+        setError(null);
+      } catch (e) {
+        if (controller.signal.aborted) return;
+        setError(e instanceof Error ? e.message : "Unknown error");
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
     }
-  }
+
+    poll();
+    const interval = setInterval(poll, 30_000);
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
+  }, [tick]);
 
   const totalSamples = status
     ? Object.values(status.intent_distribution).reduce((a, b) => a + b, 0)
@@ -143,7 +126,7 @@ export default function FineTuningPage() {
           <Card>
             <CardContent className="flex flex-col items-center gap-4 py-12">
               <p className="text-sm text-destructive">{error}</p>
-              <Button variant="outline" size="sm" onClick={fetchStatus}>
+              <Button variant="outline" size="sm" onClick={refetch}>
                 <ArrowClockwise className="size-4" weight="bold" />
                 Retry
               </Button>
@@ -242,103 +225,49 @@ export default function FineTuningPage() {
               </Card>
             </div>
 
-            {/* Train action + Intent distribution */}
-            <div className="grid gap-4 lg:grid-cols-3">
-              <Card className="lg:col-span-1">
-                <CardHeader>
-                  <CardTitle>Start Fine-Tuning</CardTitle>
-                  <CardDescription>
-                    Train a custom intent classification model on your collected
-                    samples.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <Button
-                    onClick={startTraining}
-                    disabled={training || !status.ready_to_train}
-                    className="w-full"
-                  >
-                    {training ? (
-                      <>
-                        <CircleNotch
-                          className="size-4 animate-spin"
-                          weight="bold"
-                        />
-                        Training...
-                      </>
-                    ) : (
-                      <>
-                        <Brain className="size-4" weight="bold" />
-                        Train Model
-                      </>
-                    )}
-                  </Button>
-                  {!status.ready_to_train && (
-                    <p className="text-center text-xs text-muted-foreground">
-                      Collect at least {status.min_samples_required} samples
-                      before training.
-                    </p>
-                  )}
-                  {trainResult && (
-                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-800 dark:bg-emerald-950/30">
-                      <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                        {trainResult.status === "training_started"
-                          ? "Training started"
-                          : trainResult.status}
-                      </p>
-                      {trainResult.job_id && (
-                        <p className="mt-1 font-mono text-xs text-emerald-600 dark:text-emerald-400">
-                          Job: {trainResult.job_id}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>Intent Distribution</CardTitle>
-                  <CardDescription>
-                    Breakdown of {totalSamples.toLocaleString()} classified
-                    samples
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col gap-3">
-                    {Object.entries(status.intent_distribution)
-                      .sort(([, a], [, b]) => b - a)
-                      .map(([intent, count]) => {
-                        const pct =
-                          totalSamples > 0
-                            ? Math.round((count / totalSamples) * 100)
-                            : 0;
-                        return (
-                          <div key={intent} className="flex flex-col gap-1.5">
-                            <div className="flex items-center justify-between text-sm">
-                              <span
-                                className={`font-medium capitalize ${INTENT_TEXT_COLORS[intent] ?? ""}`}
-                              >
-                                {intent}
-                              </span>
-                              <span className="tabular-nums text-muted-foreground">
-                                {count.toLocaleString()}{" "}
-                                <span className="text-xs">({pct}%)</span>
-                              </span>
-                            </div>
-                            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                              <div
-                                className={`h-full rounded-full transition-all ${INTENT_COLORS[intent] ?? "bg-primary"}`}
-                                style={{ width: `${pct}%` }}
-                              />
-                            </div>
+            {/* Intent distribution */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Intent Distribution</CardTitle>
+                <CardDescription>
+                  Breakdown of {totalSamples.toLocaleString()} classified
+                  samples
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-3">
+                  {Object.entries(status.intent_distribution)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([intent, count]) => {
+                      const pct =
+                        totalSamples > 0
+                          ? Math.round((count / totalSamples) * 100)
+                          : 0;
+                      return (
+                        <div key={intent} className="flex flex-col gap-1.5">
+                          <div className="flex items-center justify-between text-sm">
+                            <span
+                              className={`font-medium capitalize ${INTENT_TEXT_COLORS[intent] ?? ""}`}
+                            >
+                              {intent}
+                            </span>
+                            <span className="tabular-nums text-muted-foreground">
+                              {count.toLocaleString()}{" "}
+                              <span className="text-xs">({pct}%)</span>
+                            </span>
                           </div>
-                        );
-                      })}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                            <div
+                              className={`h-full rounded-full transition-all ${INTENT_COLORS[intent] ?? "bg-primary"}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Timeline + Recent samples */}
             <div className="grid gap-4 lg:grid-cols-3">
@@ -408,7 +337,7 @@ export default function FineTuningPage() {
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      onClick={fetchStatus}
+                      onClick={refetch}
                     >
                       <ArrowClockwise className="size-3.5" weight="bold" />
                     </Button>
@@ -416,7 +345,7 @@ export default function FineTuningPage() {
                 </CardHeader>
                 <CardContent>
                   {status.recent_samples.length > 0 ? (
-                    <div className="overflow-x-auto [&_[data-slot=table-container]]:border-0 [&_[data-slot=table-container]]:shadow-none [&_[data-slot=table-container]]:rounded-none">
+                    <div className="overflow-x-auto **:data-[slot=table-container]:border-0 **:data-[slot=table-container]:shadow-none **:data-[slot=table-container]:rounded-none">
                       <Table>
                         <TableHeader>
                           <TableRow>

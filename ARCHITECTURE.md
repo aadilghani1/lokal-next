@@ -29,8 +29,9 @@ Lokal is a three-service architecture. The frontend orchestrates two backend ser
 │  │ Dashboard    │  │ Blog Engine  │  │ API Routes             │  │
 │  │ - Audit      │  │ - Tenant     │  │ - /api/rank-better     │  │
 │  │ - Generating │  │   routing    │  │ - /api/stream/[jobId]  │  │
-│  │ - Results    │  │ - Article    │  │ - /api/photos          │  │
-│  │ - Articles   │  │   rendering  │  │ - /api/webhooks/clerk  │  │
+│  │ - Results    │  │ - Article    │  │ - /api/intent-model    │  │
+│  │ - Articles   │  │   rendering  │  │ - /api/photos          │  │
+│  │ - Fine Tuning│  │              │  │ - /api/webhooks/clerk  │  │
 │  └─────────────┘  └──────────────┘  └───────────┬────────────┘  │
 │                                                  │               │
 │  ┌──────────────┐  ┌──────────────┐              │               │
@@ -121,6 +122,8 @@ lokal0 ──POST /api/v1/analyze──────────────► c
 lokal0 ──GET  /api/v1/analyze/{id}/stream──► content-gen  (SSE proxy)
 lokal0 ──GET  /api/v1/analyze/{id}─────────► content-gen  (poll status)
 lokal0 ──POST /api/v1/discover-competitors─► content-gen  (audit flow)
+lokal0 ──GET  /api/v1/intent-model/status──► content-gen  (fine-tuning UI)
+lokal0 ──POST /api/v1/intent-model/train───► content-gen  (trigger training)
 
 content-gen ──POST /keywords/research──────► seo-api
 content-gen ──POST /keywords/overview──────► seo-api
@@ -190,7 +193,7 @@ After writing, a second Claude call extracts structured articles from the raw ma
 
 ### 10. Persistence
 
-Results saved to content-gen's PostgreSQL: submission marked completed with full `result_json`, competitor records, crawled pages, extracted keywords, and intent training samples.
+Results saved to content-gen's PostgreSQL: submission marked completed with full `result_json`, competitor records, crawled pages, extracted keywords, and intent training samples. The `result_json` includes `keyword_intents` — a map of keyword to `{intent, weight}` used by the frontend to render per-job intent breakdowns.
 
 ## seo-api Endpoints
 
@@ -284,11 +287,14 @@ lokal0/
 │   │       │   └── [url]/      # Audit results with caching + after() persistence
 │   │       ├── articles/        # Article list + individual preview
 │   │       ├── generating/      # Real-time SSE generation progress
-│   │       └── results/[jobId]/ # Completed job results
+│   │       ├── results/[jobId]/ # Completed job results
+│   │       └── fine-tuning/     # Intent model status + training data
 │   ├── (blog)/                  # Multi-tenant public blog
 │   │   └── blog/[tenant]/       # Tenant index + article pages
 │   └── api/                     # API routes
 │       ├── rank-better/         # Content generation trigger + polling
+│       │   └── [jobId]/intents/ # Keyword intent data for a job
+│       ├── intent-model/        # Proxy: GET status, POST train
 │       ├── stream/[jobId]/      # SSE proxy to content-gen
 │       ├── photos/              # Google Places photo proxy
 │       └── webhooks/clerk/      # Clerk webhook handler
@@ -300,6 +306,9 @@ lokal0/
 │   ├── generating/              # SSE event feed + tool call renderers
 │   ├── ai-elements/             # AI chat UI primitives
 │   └── dashboard/               # Dashboard-specific components
+│       ├── audit-url-form.tsx   # GBP URL input form
+│       ├── intent-model-card.tsx    # Global intent model status (overview page)
+│       └── keyword-intent-breakdown.tsx  # Per-job keyword intents (results page)
 ├── db/
 │   ├── schema.ts                # Drizzle schema (5 tables)
 │   ├── index.ts                 # Lazy-singleton DB connection
@@ -477,6 +486,35 @@ User clicks "Rank Better"
     → createArticle() for each article (validated with backendArticleSchema)
     → Store pgvector embeddings for similarity search
   → Redirect to /dashboard/results/[jobId]
+```
+
+### Intent Model Flow
+
+The intent model is a self-improving feedback loop. Every content generation pipeline run produces training data that makes future intent classifications more accurate.
+
+```
+Pipeline stage 7 (Intent Classification)
+  → Pioneer AI classifies each keyword's search intent
+  → DataForSEO ground-truth intents used as labels
+  → Saved to content-gen intent_training_samples table
+
+Dashboard overview (/dashboard)
+  → <IntentModelCard /> fetches GET /api/intent-model
+    → Proxied to content-gen GET /api/v1/intent-model/status
+    → Shows: total samples, intent distribution, model status
+    → Links to /dashboard/fine-tuning for details
+
+Results page (/dashboard/results/[jobId])
+  → <KeywordIntentBreakdown jobId={...} /> fetches GET /api/rank-better/{jobId}/intents
+    → Proxied to content-gen GET /api/v1/analyze/{jobId}
+    → Extracts keyword_intents from result_json
+    → Shows: per-job intent distribution, top keywords by intent
+
+Fine Tuning page (/dashboard/fine-tuning)
+  → Polls GET /api/intent-model every 30s
+  → Shows: stat cards, intent distribution, collection timeline, recent samples
+  → Training samples accumulate across all businesses
+  → When ready_to_train: POST /api/v1/intent-model/train triggers fine-tuning
 ```
 
 ### Blog Publishing Flow
